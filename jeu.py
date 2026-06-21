@@ -1,25 +1,3 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Jeu</title>
-    <link rel="stylesheet" href="https://pyscript.net/snapshots/2023.05.1/pyscript.css" />
-    <script defer src="https://pyscript.net/snapshots/2023.05.1/pyscript.js"></script>
-    <style>
-        body { background-color: #111; color: #fff; text-align: center; font-family: sans-serif; padding: 50px; }
-    </style>
-</head>
-<body>
-
-    <h1>🕹️ Phase de chargement</h1>
-    <p>Si rien ne se passe, l'erreur s'affichera juste en dessous :</p>
-
-    <py-config>
-        packages = ["pygame"]
-    </py-config>
-
-    <py-script src="jeu.py"></py-script>
-
-</body>
-</html>
+import pygame
+pygame.init()
+print("Le moteur de jeu fonctionne !")
