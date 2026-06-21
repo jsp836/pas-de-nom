@@ -80,6 +80,6 @@ async def main():
 
         pygame.display.flip()
         horloge.tick(60)
-        await asyncio.sleep(0) # Permet de faire tourner le jeu sur navigateur PC
+        await asyncio.sleep(0) # Obligatoire pour le web
 
 asyncio.run(main())
