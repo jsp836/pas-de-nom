@@ -59,7 +59,6 @@
     <canvas id="jeuCanvas"></canvas>
 
     <script>
-        // Tout le jeu est entouré par une sécurité qui attend que la page soit prête
         window.addEventListener("load", function() {
             try {
                 const canvas = document.getElementById("jeuCanvas");
@@ -80,7 +79,7 @@
                 let joueur_largeur = 70;   
                 let joueur_hauteur = 70;   
                 let joueur_x = canvas.width / 2 - joueur_largeur / 2;        
-                let joueur_y = canvas.height / 2 - joueur_hauteur / 2 + 150;       
+                let joueur_y = canvas.height / 2 - joueur_hauteur / 2 + 180;       
                 let joueur_vitesse = 8;   
 
                 let cible_x = joueur_x;
@@ -144,15 +143,26 @@
                     let largeur_chemin = 120;
 
                     if (etat_jeu === "JEU") {
+                        // --- DESSIN DES CHEMINS EN DIAGONALE (FORMANT UN X) ---
                         ctx.fillStyle = "#3c3c3c";
-                        ctx.fillRect(0, centre_y - largeur_chemin / 2, centre_x, largeur_chemin);
-                        ctx.fillRect(centre_x, centre_y - largeur_chemin / 2, canvas.width - centre_x, largeur_chemin);
-                        ctx.fillRect(centre_x - largeur_chemin / 2, 0, largeur_chemin, centre_y);
-                        ctx.fillRect(centre_x - largeur_chemin / 2, centre_y, largeur_chemin, canvas.height - centre_y);
+                        ctx.lineWidth = largeur_chemin;
+                        ctx.lineCap = "round";
 
+                        ctx.beginPath();
+                        // Diagonale 1 : Coin haut-gauche vers Coin bas-droite
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(canvas.width, canvas.height);
+                        
+                        // Diagonale 2 : Coin haut-droite vers Coin bas-gauche
+                        ctx.moveTo(canvas.width, 0);
+                        ctx.lineTo(0, canvas.height);
+                        ctx.stroke();
+
+                        // --- LE COFFRE AU MILIEU (Jaune) ---
                         ctx.fillStyle = "#ffff00";
                         ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
 
+                        // --- TON PERSO (Vert) ---
                         ctx.fillStyle = "#00ff00";
                         ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
                     }
@@ -160,7 +170,7 @@
 
                 update();
             } catch (erreur) {
-                alert("Erreur pendant le lancement du jeu : " + erreur.message);
+                alert("Erreur : " + erreur.message);
             }
         });
     </script>
