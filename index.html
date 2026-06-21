@@ -70,20 +70,27 @@
             redimensionner();
             window.addEventListener('resize', redimensionner);
 
-            let hp_coffre = 100;
+            // --- CONFIGURATION STATS ---
+            let hp_coffre = 10000;
+            let max_hp_coffre = 10000;
             let argent = 0;
-            let vague_actuelle = 1;
             let etat_jeu = "JEU"; 
 
+            // --- PERSO VERT ---
             let joueur_largeur = 70;   
             let joueur_hauteur = 70;   
             let joueur_x = window.innerWidth / 2 - joueur_largeur / 2;        
             let joueur_y = window.innerHeight / 2 - joueur_hauteur / 2 + 180;       
-            let joueur_vitesse = 8;   
+            let joueur_vitesse = 4; // Divisée par 2 (avant c'était 8)
+            let joueur_degats = 500;
 
             let cible_x = joueur_x;
             let cible_y = joueur_y;
             let mode_tactile = false;
+
+            // --- ENEMIS ---
+            let liste_ennemis = [];
+            let dernier_spawn = 0;
 
             let touches = {};
             window.addEventListener("keydown", (e) => {
@@ -99,73 +106,3 @@
             }
 
             canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
-            canvas.addEventListener("touchstart", (e) => gererAction(e.touches[0].clientX, e.touches[0].clientY));
-            canvas.addEventListener("touchmove", (e) => {
-                e.preventDefault();
-                gererAction(e.touches[0].clientX, e.touches[0].clientY);
-            }, { passive: false });
-
-            function update() {
-                if (etat_jeu === "JEU") {
-                    if (mode_tactile) {
-                        let dx = cible_x - joueur_x;
-                        let dy = cible_y - joueur_y;
-                        let distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance > joueur_vitesse) {
-                            joueur_x += (dx / distance) * joueur_vitesse;
-                            joueur_y += (dy / distance) * joueur_vitesse;
-                        }
-                    } else {
-                        if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
-                        if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
-                        if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
-                        if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
-                    }
-                    
-                    if (joueur_x < 0) joueur_x = 0;
-                    if (joueur_x > canvas.width - joueur_largeur) joueur_x = canvas.width - joueur_largeur;
-                    if (joueur_y < 0) joueur_y = 0;
-                    if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
-                }
-
-                dessiner();
-                requestAnimationFrame(update);
-            }
-
-            function dessiner() {
-                ctx.fillStyle = "#1e1e1e";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                let centre_x = canvas.width / 2;
-                let centre_y = canvas.height / 2;
-                let taille_coffre = 150;
-                let largeur_chemin = 120;
-
-                if (etat_jeu === "JEU") {
-                    // Chemins en diagonale (X parfait)
-                    ctx.strokeStyle = "#3c3c3c";
-                    ctx.lineWidth = largeur_chemin;
-                    ctx.lineCap = "round";
-
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(canvas.width, canvas.height);
-                    ctx.moveTo(canvas.width, 0);
-                    ctx.lineTo(0, canvas.height);
-                    ctx.stroke();
-
-                    // Coffre au centre
-                    ctx.fillStyle = "#ffff00";
-                    ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
-
-                    // Joueur vert
-                    ctx.fillStyle = "#00ff00";
-                    ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
-                }
-            }
-
-            update();
-        });
-    </script>
-</body>
-</html>
