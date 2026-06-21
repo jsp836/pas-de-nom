@@ -3,18 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Super Jeu Python</title>
+    <title>Mon Jeu Python</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
-        body { background-color: #1a1a1a; color: white; text-align: center; font-family: sans-serif; }
-        #loading { margin-top: 50px; font-size: 20px; }
+        body { 
+            background-color: #1a1a1a; 
+            color: white; 
+            text-align: center; 
+            font-family: sans-serif; 
+            margin: 0;
+            padding: 20px;
+        }
+        #game-container {
+            margin: 20px auto;
+            max-width: 100%;
+        }
     </style>
 </head>
 <body>
     <h1>🎮 Lancement du jeu...</h1>
     <p>Patiente quelques secondes, le moteur Python démarre dans ton navigateur !</p>
     
-    <script type="py" src="jeu.py" config='{"packages": ["pygame-ce"]}'></script>
+    <div id="game-container">
+        <script type="py" src="jeu.py" config='{"packages": ["pygame"]}'></script>
+    </div>
 </body>
 </html>
