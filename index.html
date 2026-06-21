@@ -90,6 +90,9 @@
             // --- ENNEMIS ---
             let liste_ennemis = [];
             let dernier_spawn = 0;
+            
+            // Compteurs pour limiter à 10 ennemis max par coin
+            let compteurs_coins = [0, 0, 0, 0]; 
 
             let touches = {};
             window.addEventListener("keydown", (e) => {
@@ -119,24 +122,29 @@
 
             function faireSpawnEnnemis() {
                 let coins = [
-                    {x: 0, y: 0},                         
-                    {x: canvas.width, y: 0},              
-                    {x: 0, y: canvas.height},             
-                    {x: canvas.width, y: canvas.height}   
+                    {x: 0, y: 0},                         // Coin 0
+                    {x: canvas.width, y: 0},              // Coin 1
+                    {x: 0, y: canvas.height},             // Coin 2
+                    {x: canvas.width, y: canvas.height}   // Coin 3
                 ];
 
-                coins.forEach(coin => {
-                    liste_ennemis.push({
-                        x: coin.x - 25,
-                        y: coin.y - 25,
-                        largeur: 50,
-                        hauteur: 50,
-                        vitesse: 4, 
-                        hp: 2000,
-                        max_hp: 2000,
-                        degats: 100,
-                        invulnerable_timer: 0 
-                    });
+                coins.forEach((coin, index) => {
+                    // On spawn SEULEMENT si ce coin n'a pas encore envoyé ses 10 ennemis
+                    if (compteurs_coins[index] < 10) {
+                        liste_ennemis.push({
+                            x: coin.x - 25,
+                            y: coin.y - 25,
+                            largeur: 50,
+                            hauteur: 50,
+                            vitesse: 4, 
+                            hp: 1000, // Ajusté à 1000 HP
+                            max_hp: 1000,
+                            degats: 100,
+                            invulnerable_timer: 0,
+                            coin_origine: index // On retient d'où il vient
+                        });
+                        compteurs_coins[index]++;
+                    }
                 });
             }
 
@@ -212,4 +220,86 @@
 
                         if (collision(rect_coffre, e)) {
                             hp_coffre -= e.degats;
-                            liste_ennemis.splice(i,
+                            liste_ennemis.splice(i, 1); 
+                            continue;
+                        }
+
+                        if (e.hp <= 0) {
+                            liste_ennemis.splice(i, 1);
+                        }
+                    }
+
+                    if (hp_coffre <= 0) {
+                        hp_coffre = 0;
+                        etat_jeu = "GAMEOVER";
+                    }
+                }
+
+                dessiner();
+                requestAnimationFrame(update);
+            }
+
+            function dessiner() {
+                ctx.fillStyle = "#1e1e1e";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                let centre_x = canvas.width / 2;
+                let centre_y = canvas.height / 2;
+                let taille_coffre = 150;
+                let largeur_chemin = 120;
+
+                ctx.strokeStyle = "#3c3c3c";
+                ctx.lineWidth = largeur_chemin;
+                ctx.lineCap = "round";
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.moveTo(canvas.width, 0);
+                ctx.lineTo(0, canvas.height);
+                ctx.stroke();
+
+                liste_ennemis.forEach(e => {
+                    ctx.fillStyle = "#ff4d4d";
+                    ctx.fillRect(e.x, e.y, e.largeur, e.hauteur);
+
+                    ctx.fillStyle = "#000";
+                    ctx.fillRect(e.x, e.y - 12, e.largeur, 6);
+                    ctx.fillStyle = "#ff0000";
+                    let large_vie = (e.hp / e.max_hp) * e.largeur;
+                    ctx.fillRect(e.x, e.y - 12, large_vie > 0 ? large_vie : 0, 6);
+                });
+
+                ctx.fillStyle = "#ffff00";
+                ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
+
+                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillRect(centre_x - 100, centre_y - taille_coffre / 2 - 30, 200, 15);
+                ctx.fillStyle = "#00ff00";
+                ctx.fillRect(centre_x - 100, centre_y - taille_coffre / 2 - 30, (hp_coffre / max_hp_coffre) * 200, 15);
+
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 14px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(hp_coffre + " / " + max_hp_coffre + " HP", centre_x, centre_y - taille_coffre / 2 - 35);
+
+                ctx.fillStyle = "#00ff00";
+                ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
+
+                if (etat_jeu === "GAMEOVER") {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "#ff4d4d";
+                    ctx.font = "bold 60px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText("LE COFFRE A ÉTÉ DETRUIT !", canvas.width / 2, canvas.height / 2);
+                    ctx.font = "30px sans-serif";
+                    ctx.fillStyle = "#fff";
+                    ctx.fillText("Rafraîchis la page pour rejouer", canvas.width / 2, canvas.height / 2 + 70);
+                }
+            }
+
+            update();
+        });
+    </script>
+</body>
+</html>
