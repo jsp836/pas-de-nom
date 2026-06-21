@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
-        /* Supprime toutes les bordures et force le plein écran */
         html, body {
             margin: 0;
             padding: 0;
@@ -15,12 +14,15 @@
             height: 100%;
             overflow: hidden;
             background-color: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        /* Force le canvas Pygame à s'étirer sur tout l'écran */
+        /* Force le canvas à prendre tout l'espace disponible */
         canvas {
             width: 100vw !important;
             height: 100vh !important;
-            display: block;
+            object-fit: cover;
         }
     </style>
 </head>
