@@ -19,7 +19,6 @@
             justify-content: center;
             font-family: sans-serif;
         }
-        /* Zone des boutons */
         .barre-outils {
             position: absolute;
             top: 15px;
@@ -42,7 +41,6 @@
         .btn-rouge { border-color: #ff4d4d; color: #ff4d4d; }
         .btn-rouge:hover { background: #ff4d4d; color: #fff; }
         
-        /* Le canvas prend TOUT l'écran réel */
         canvas {
             width: 100vw;
             height: 100vh;
@@ -61,120 +59,110 @@
     <canvas id="jeuCanvas"></canvas>
 
     <script>
-        const canvas = document.getElementById("jeuCanvas");
-        const ctx = canvas.getContext("2d");
+        // Tout le jeu est entouré par une sécurité qui attend que la page soit prête
+        window.addEventListener("load", function() {
+            try {
+                const canvas = document.getElementById("jeuCanvas");
+                const ctx = canvas.getContext("2d");
 
-        # ÉCRAN TOTAL : On s'adapte à la taille exacte du navigateur
-        function redimensionner() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', redimensionner);
-        redimensionner();
-
-        // --- VARIABLES ---
-        let hp_coffre = 100;
-        let argent = 0;
-        let vague_actuelle = 1;
-        let etat_jeu = "JEU"; 
-
-        // --- PERSO VERT ---
-        let joueur_largeur = 70;   
-        let joueur_hauteur = 70;   
-        let joueur_x = canvas.width / 2 - joueur_largeur / 2;        
-        let joueur_y = canvas.height / 2 - joueur_hauteur / 2 + 150; # Pop un peu plus bas que le coffre       
-        let joueur_vitesse = 8;   
-
-        let cible_x = joueur_x;
-        let cible_y = joueur_y;
-        let mode_tactile = false;
-
-        // --- CLAVIER (PC) ---
-        let touches = {};
-        window.addEventListener("keydown", (e) => {
-            touches[e.code] = true;
-            mode_tactile = false;
-        });
-        window.addEventListener("keyup", (e) => touches[e.code] = false);
-
-        // --- TACTILE (TÉLÉPHONE) ---
-        function gererAction(clientX, clientY) {
-            mode_tactile = true;
-            const rect = canvas.getBoundingClientRect();
-            cible_x = clientX - joueur_largeur / 2;
-            cible_y = clientY - joueur_hauteur / 2;
-        }
-
-        canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
-        canvas.addEventListener("touchstart", (e) => gererAction(e.touches[0].clientX, e.touches[0].clientY));
-        canvas.addEventListener("touchmove", (e) => {
-            e.preventDefault();
-            gererAction(e.touches[0].clientX, e.touches[0].clientY);
-        }, { passive: false });
-
-        // --- BOUCLE DU JEU ---
-        function update() {
-            if (etat_jeu === "JEU") {
-                if (mode_tactile) {
-                    let dx = cible_x - joueur_x;
-                    let dy = cible_y - joueur_y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance > joueur_vitesse) {
-                        joueur_x += (dx / distance) * joueur_vitesse;
-                        joueur_y += (dy / distance) * joueur_vitesse;
-                    }
-                } else {
-                    if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
-                    if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
-                    if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
-                    if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
+                function redimensionner() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
                 }
-                
-                // Murs dynamiques selon la taille de l'écran
-                if (joueur_x < 0) joueur_x = 0;
-                if (joueur_x > canvas.width - joueur_largeur) joueur_x = canvas.width - joueur_largeur;
-                if (joueur_y < 0) joueur_y = 0;
-                if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
+                window.addEventListener('resize', redimensionner);
+                redimensionner();
+
+                let hp_coffre = 100;
+                let argent = 0;
+                let vague_actuelle = 1;
+                let etat_jeu = "JEU"; 
+
+                let joueur_largeur = 70;   
+                let joueur_hauteur = 70;   
+                let joueur_x = canvas.width / 2 - joueur_largeur / 2;        
+                let joueur_y = canvas.height / 2 - joueur_hauteur / 2 + 150;       
+                let joueur_vitesse = 8;   
+
+                let cible_x = joueur_x;
+                let cible_y = joueur_y;
+                let mode_tactile = false;
+
+                let touches = {};
+                window.addEventListener("keydown", (e) => {
+                    touches[e.code] = true;
+                    mode_tactile = false;
+                });
+                window.addEventListener("keyup", (e) => touches[e.code] = false);
+
+                function gererAction(clientX, clientY) {
+                    mode_tactile = true;
+                    cible_x = clientX - joueur_largeur / 2;
+                    cible_y = clientY - joueur_hauteur / 2;
+                }
+
+                canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
+                canvas.addEventListener("touchstart", (e) => gererAction(e.touches[0].clientX, e.touches[0].clientY));
+                canvas.addEventListener("touchmove", (e) => {
+                    e.preventDefault();
+                    gererAction(e.touches[0].clientX, e.touches[0].clientY);
+                }, { passive: false });
+
+                function update() {
+                    if (etat_jeu === "JEU") {
+                        if (mode_tactile) {
+                            let dx = cible_x - joueur_x;
+                            let dy = cible_y - joueur_y;
+                            let distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance > joueur_vitesse) {
+                                joueur_x += (dx / distance) * joueur_vitesse;
+                                joueur_y += (dy / distance) * joueur_vitesse;
+                            }
+                        } else {
+                            if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
+                            if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
+                            if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
+                            if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
+                        }
+                        
+                        if (joueur_x < 0) joueur_x = 0;
+                        if (joueur_x > canvas.width - joueur_largeur) joueur_x = canvas.width - joueur_largeur;
+                        if (joueur_y < 0) joueur_y = 0;
+                        if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
+                    }
+
+                    dessiner();
+                    requestAnimationFrame(update);
+                }
+
+                function dessiner() {
+                    ctx.fillStyle = "#1e1e1e";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    let centre_x = canvas.width / 2;
+                    let centre_y = canvas.height / 2;
+                    let taille_coffre = 150;
+                    let largeur_chemin = 120;
+
+                    if (etat_jeu === "JEU") {
+                        ctx.fillStyle = "#3c3c3c";
+                        ctx.fillRect(0, centre_y - largeur_chemin / 2, centre_x, largeur_chemin);
+                        ctx.fillRect(centre_x, centre_y - largeur_chemin / 2, canvas.width - centre_x, largeur_chemin);
+                        ctx.fillRect(centre_x - largeur_chemin / 2, 0, largeur_chemin, centre_y);
+                        ctx.fillRect(centre_x - largeur_chemin / 2, centre_y, largeur_chemin, canvas.height - centre_y);
+
+                        ctx.fillStyle = "#ffff00";
+                        ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
+
+                        ctx.fillStyle = "#00ff00";
+                        ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
+                    }
+                }
+
+                update();
+            } catch (erreur) {
+                alert("Erreur pendant le lancement du jeu : " + erreur.message);
             }
-
-            dessiner();
-            requestAnimationFrame(update);
-        }
-
-        function dessiner() {
-            // Fond gris foncé
-            ctx.fillStyle = "#1e1e1e";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Taille et centre dynamiques
-            let centre_x = canvas.width / 2;
-            let centre_y = canvas.height / 2;
-            let taille_coffre = 150;
-            let largeur_chemin = 120;
-
-            if (etat_jeu === "JEU") {
-                // --- LES 4 CHEMINS GRIS VERS LE CENTRE ---
-                ctx.fillStyle = "#3c3c3c";
-                // Chemin Gauche
-                ctx.fillRect(0, centre_y - largeur_chemin / 2, centre_x, largeur_chemin);
-                // Chemin Droite
-                ctx.fillRect(centre_x, centre_y - largeur_chemin / 2, canvas.width - centre_x, largeur_chemin);
-                // Chemin Haut
-                ctx.fillRect(centre_x - largeur_chemin / 2, 0, largeur_chemin, centre_y);
-                // Chemin Bas
-                ctx.fillRect(centre_x - largeur_chemin / 2, centre_y, largeur_chemin, canvas.height - centre_y);
-
-                // --- LE COFFRE PILE AU CENTRE (Jaune) ---
-                ctx.fillStyle = "#ffff00";
-                ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
-
-                // --- TON PERSO (Vert) ---
-                ctx.fillStyle = "#00ff00";
-                ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
-            }
-        }
-
-        update();
+        });
     </script>
 </body>
 </html>
