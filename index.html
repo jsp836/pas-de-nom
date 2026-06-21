@@ -19,15 +19,17 @@
             justify-content: center;
             font-family: sans-serif;
         }
-        /* Zone des boutons du haut */
+        /* Zone des boutons */
         .barre-outils {
-            margin-bottom: 10px;
+            position: absolute;
+            top: 15px;
+            right: 15px;
             display: flex;
             gap: 15px;
             z-index: 10;
         }
         .btn {
-            background: #222;
+            background: rgba(0, 0, 0, 0.7);
             color: #fff;
             border: 2px solid #555;
             padding: 8px 16px;
@@ -40,12 +42,11 @@
         .btn-rouge { border-color: #ff4d4d; color: #ff4d4d; }
         .btn-rouge:hover { background: #ff4d4d; color: #fff; }
         
-        /* Le jeu garde ses proportions (1200x800) sans s'aplatir */
+        /* Le canvas prend TOUT l'écran réel */
         canvas {
-            max-width: 95vw;
-            max-height: 85vh;
+            width: 100vw;
+            height: 100vh;
             display: block;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
             background-color: #1e1e1e;
         }
     </style>
@@ -57,11 +58,19 @@
         <button class="btn btn-rouge" onclick="window.close(); window.location.href='about:blank';">❌ Quitter</button>
     </div>
 
-    <canvas id="jeuCanvas" width="1200" height="800"></canvas>
+    <canvas id="jeuCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById("jeuCanvas");
         const ctx = canvas.getContext("2d");
+
+        # ÉCRAN TOTAL : On s'adapte à la taille exacte du navigateur
+        function redimensionner() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', redimensionner);
+        redimensionner();
 
         // --- VARIABLES ---
         let hp_coffre = 100;
@@ -70,11 +79,11 @@
         let etat_jeu = "JEU"; 
 
         // --- PERSO VERT ---
-        let joueur_x = 900;        
-        let joueur_y = 500;        
-        let joueur_vitesse = 8;   
         let joueur_largeur = 70;   
         let joueur_hauteur = 70;   
+        let joueur_x = canvas.width / 2 - joueur_largeur / 2;        
+        let joueur_y = canvas.height / 2 - joueur_hauteur / 2 + 150; # Pop un peu plus bas que le coffre       
+        let joueur_vitesse = 8;   
 
         let cible_x = joueur_x;
         let cible_y = joueur_y;
@@ -92,8 +101,8 @@
         function gererAction(clientX, clientY) {
             mode_tactile = true;
             const rect = canvas.getBoundingClientRect();
-            cible_x = ((clientX - rect.left) / rect.width) * canvas.width - joueur_largeur / 2;
-            cible_y = ((clientY - rect.top) / rect.height) * canvas.height - joueur_hauteur / 2;
+            cible_x = clientX - joueur_largeur / 2;
+            cible_y = clientY - joueur_hauteur / 2;
         }
 
         canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
@@ -121,7 +130,7 @@
                     if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
                 }
                 
-                // Murs
+                // Murs dynamiques selon la taille de l'écran
                 if (joueur_x < 0) joueur_x = 0;
                 if (joueur_x > canvas.width - joueur_largeur) joueur_x = canvas.width - joueur_largeur;
                 if (joueur_y < 0) joueur_y = 0;
@@ -133,27 +142,33 @@
         }
 
         function dessiner() {
-            // Fond
+            // Fond gris foncé
             ctx.fillStyle = "#1e1e1e";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // Taille et centre dynamiques
+            let centre_x = canvas.width / 2;
+            let centre_y = canvas.height / 2;
+            let taille_coffre = 150;
+            let largeur_chemin = 120;
+
             if (etat_jeu === "JEU") {
-                // Chemins gris (exactement comme ton Pygame d'origine)
+                // --- LES 4 CHEMINS GRIS VERS LE CENTRE ---
                 ctx.fillStyle = "#3c3c3c";
-                ctx.fillRect(0, 0, 200, 400);
-                ctx.fillRect(200, 200, 75, 200);
-                ctx.fillRect(275, 0, 200, 400);
-                ctx.fillRect(475, 0, 75, 200);
-                ctx.fillRect(550, 0, 200, 400);
-                ctx.fillRect(750, 300, 100, 100);
-                ctx.fillRect(0, 750, 200, 400);
-                ctx.fillRect(200, 810, 75, 200);
+                // Chemin Gauche
+                ctx.fillRect(0, centre_y - largeur_chemin / 2, centre_x, largeur_chemin);
+                // Chemin Droite
+                ctx.fillRect(centre_x, centre_y - largeur_chemin / 2, canvas.width - centre_x, largeur_chemin);
+                // Chemin Haut
+                ctx.fillRect(centre_x - largeur_chemin / 2, 0, largeur_chemin, centre_y);
+                // Chemin Bas
+                ctx.fillRect(centre_x - largeur_chemin / 2, centre_y, largeur_chemin, canvas.height - centre_y);
 
-                // Coffre (Jaune)
+                // --- LE COFFRE PILE AU CENTRE (Jaune) ---
                 ctx.fillStyle = "#ffff00";
-                ctx.fillRect(850, 300, 300, 400);
+                ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
 
-                // Ton perso (Vert)
+                // --- TON PERSO (Vert) ---
                 ctx.fillStyle = "#00ff00";
                 ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
             }
