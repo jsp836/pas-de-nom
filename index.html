@@ -70,13 +70,12 @@
             redimensionner();
             window.addEventListener('resize', redimensionner);
 
-            // --- CONFIGURATION STATS ---
+            // --- STATS ---
             let hp_coffre = 10000;
             let max_hp_coffre = 10000;
-            let argent = 0;
             let etat_jeu = "JEU"; 
 
-            // --- PERSO VERT ---
+            // --- JOUEUR VERT ---
             let joueur_largeur = 70;   
             let joueur_hauteur = 70;   
             let joueur_x = window.innerWidth / 2 - joueur_largeur / 2;        
@@ -88,7 +87,7 @@
             let cible_y = joueur_y;
             let mode_tactile = false;
 
-            // --- ENEMIS ---
+            // --- ENNEMIS ---
             let liste_ennemis = [];
             let dernier_spawn = 0;
 
@@ -118,13 +117,12 @@
                 }
             }, { passive: false });
 
-            // Fonction pour faire apparaître les ennemis aux 4 coins
             function faireSpawnEnnemis() {
                 let coins = [
-                    {x: 0, y: 0},                         // Haut-Gauche
-                    {x: canvas.width, y: 0},              // Haut-Droite
-                    {x: 0, y: canvas.height},             // Bas-Gauche
-                    {x: canvas.width, y: canvas.height}   // Bas-Droite
+                    {x: 0, y: 0},                         
+                    {x: canvas.width, y: 0},              
+                    {x: 0, y: canvas.height},             
+                    {x: canvas.width, y: canvas.height}   
                 ];
 
                 coins.forEach(coin => {
@@ -133,16 +131,15 @@
                         y: coin.y - 25,
                         largeur: 50,
                         hauteur: 50,
-                        vitesse: 4, // Même vitesse que le joueur
+                        vitesse: 4, 
                         hp: 2000,
                         max_hp: 2000,
                         degats: 100,
-                        invulnerable_timer: 0 // Anti-one shot instantané
+                        invulnerable_timer: 0 
                     });
                 });
             }
 
-            // Vérifie si deux rectangles se touchent
             function collision(rect1, rect2) {
                 return rect1.x < rect2.x + rect2.largeur &&
                        rect1.x + rect1.largeur > rect2.x &&
@@ -154,13 +151,11 @@
                 if (etat_jeu === "JEU") {
                     let maintenant = Date.now();
                     
-                    // Apparition toutes les 1000ms (1 seconde)
                     if (maintenant - dernier_spawn > 1000) {
                         faireSpawnEnnemis();
-                        dernier_spawn = maintenant; // CORRECTION ICI
+                        dernier_spawn = maintenant;
                     }
 
-                    // Déplacement du joueur
                     if (mode_tactile) {
                         let dx = cible_x - joueur_x;
                         let dy = cible_y - joueur_y;
@@ -181,7 +176,6 @@
                     if (joueur_y < 0) joueur_y = 0;
                     if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
 
-                    // Logique du coffre central
                     let centre_x = canvas.width / 2;
                     let centre_y = canvas.height / 2;
                     let taille_coffre = 150;
@@ -194,11 +188,9 @@
 
                     let rect_joueur = {x: joueur_x, y: joueur_y, largeur: joueur_largeur, hauteur: joueur_hauteur};
 
-                    // Gestion des ennemis
                     for (let i = liste_ennemis.length - 1; i >= 0; i--) {
                         let e = liste_ennemis[i];
 
-                        // Les ennemis avancent vers le centre du coffre
                         let cible_ennemi_x = centre_x - e.largeur / 2;
                         let cible_ennemi_y = centre_y - e.hauteur / 2;
 
@@ -211,109 +203,13 @@
                             e.y += (dy / dist) * e.vitesse;
                         }
 
-                        // Décrémenter le timer d'attaque du joueur
                         if (e.invulnerable_timer > 0) e.invulnerable_timer--;
 
-                        // Le joueur touche l'ennemi -> Combat
                         if (collision(rect_joueur, e) && e.invulnerable_timer === 0) {
                             e.hp -= joueur_degats;
-                            e.invulnerable_timer = 20; // Délai court avant la prochaine baffe
+                            e.invulnerable_timer = 20; 
                         }
 
-                        // L'ennemi touche le coffre -> Dégâts au coffre
                         if (collision(rect_coffre, e)) {
                             hp_coffre -= e.degats;
-                            liste_ennemis.splice(i, 1); // L'ennemi explose sur le coffre
-                            continue;
-                        }
-
-                        // Mort de l'ennemi
-                        if (e.hp <= 0) {
-                            liste_ennemis.splice(i, 1);
-                            argent += 10;
-                        }
-                    }
-
-                    // Condition de défaite
-                    if (hp_coffre <= 0) {
-                        hp_coffre = 0;
-                        etat_jeu = "GAMEOVER";
-                    }
-                }
-
-                dessiner();
-                requestAnimationFrame(update);
-            }
-
-            function dessiner() {
-                ctx.fillStyle = "#1e1e1e";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                let centre_x = canvas.width / 2;
-                let centre_y = canvas.height / 2;
-                let taille_coffre = 150;
-                let largeur_chemin = 120;
-
-                // 1. Chemins en X
-                ctx.strokeStyle = "#3c3c3c";
-                ctx.lineWidth = largeur_chemin;
-                ctx.lineCap = "round";
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(canvas.width, canvas.height);
-                ctx.moveTo(canvas.width, 0);
-                ctx.lineTo(0, canvas.height);
-                ctx.stroke();
-
-                // 2. Dessiner les Ennemis (Carrés Rouges)
-                liste_ennemis.forEach(e => {
-                    ctx.fillStyle = "#ff4d4d";
-                    ctx.fillRect(e.x, e.y, e.largeur, e.hauteur);
-
-                    // Petite barre de vie au-dessus de chaque ennemi
-                    ctx.fillStyle = "#000";
-                    ctx.fillRect(e.x, e.y - 12, e.largeur, 6);
-                    ctx.fillStyle = "#ff0000";
-                    let large_vie = (e.hp / e.max_hp) * e.largeur;
-                    ctx.fillRect(e.x, e.y - 12, large_vie > 0 ? large_vie : 0, 6);
-                });
-
-                // 3. Coffre au centre
-                ctx.fillStyle = "#ffff00";
-                ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
-
-                // Barre de vie du Coffre
-                ctx.fillStyle = "rgba(0,0,0,0.5)";
-                ctx.fillRect(centre_x - 100, centre_y - taille_coffre / 2 - 30, 200, 15);
-                ctx.fillStyle = "#00ff00";
-                ctx.fillRect(centre_x - 100, centre_y - taille_coffre / 2 - 30, (hp_coffre / max_hp_coffre) * 200, 15);
-
-                // Texte des PV du Coffre
-                ctx.fillStyle = "#fff";
-                ctx.font = "bold 14px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(hp_coffre + " / " + max_hp_coffre + " HP", centre_x, centre_y - taille_coffre / 2 - 35);
-
-                // 4. Joueur vert
-                ctx.fillStyle = "#00ff00";
-                ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
-
-                // Écran de défaite
-                if (etat_jeu === "GAMEOVER") {
-                    ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.fillStyle = "#ff4d4d";
-                    ctx.font = "bold 60px sans-serif";
-                    ctx.textAlign = "center";
-                    ctx.fillText("LE COFFRE A ÉTÉ DETRUIT !", canvas.width / 2, canvas.height / 2);
-                    ctx.font = "30px sans-serif";
-                    ctx.fillStyle = "#fff";
-                    ctx.fillText("Rafraîchis la page pour rejouer", canvas.width / 2, canvas.height / 2 + 70);
-                }
-            }
-
-            update();
-        });
-    </script>
-</body>
-</html>
+                            liste_ennemis.splice(i,
