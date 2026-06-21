@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Jeu Python Plein Écran</title>
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <title>Défends le Coffre !</title>
     <style>
+        /* Supprime toutes les marges pour un vrai plein écran */
         html, body {
             margin: 0;
             padding: 0;
@@ -14,21 +13,87 @@
             height: 100%;
             overflow: hidden;
             background-color: #1e1e1e;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
-        /* Force le canvas à prendre tout l'espace disponible */
+        /* Le jeu s'étire automatiquement sur tout l'écran */
         canvas {
-            width: 100vw !important;
-            height: 100vh !important;
-            object-fit: cover;
+            width: 100vw;
+            height: 100vh;
+            display: block;
         }
     </style>
 </head>
 <body>
 
-    <script type="py" config='{"packages":["pygame"]}' src="jeu.py"></script>
+    <canvas id="jeuCanvas" width="1920" height="1080"></canvas>
 
+    <script>
+        const canvas = document.getElementById("jeuCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // --- VARIABLES DU JEU (Comme dans ton Python) ---
+        let hp_coffre = 100;
+        let argent = 0;
+        let vague_actuelle = 1;
+        let etat_jeu = "JEU"; 
+
+        // --- CONFIGURATION DE TON PERSO VERT ---
+        let joueur_x = 1400;        
+        let joueur_y = 500;        
+        let joueur_vitesse = 10;    
+        let joueur_largeur = 70;   
+        let joueur_hauteur = 70;   
+
+        // Gestion du clavier
+        let touches = {};
+        window.addEventListener("keydown", (e) => touches[e.code] = true);
+        window.addEventListener("keyup", (e) => touches[e.code] = false);
+
+        // Boucle principale du jeu
+        function update() {
+            if (etat_jeu === "JEU") {
+                
+                // --- DÉPLACEMENT AVEC LES TOUCHES (Flèches du clavier) ---
+                if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
+                if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
+                if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
+                if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
+                
+                // Gestion des murs (Ajustée à la taille 1920x1080)
+                if (joueur_x < 0) joueur_x = 0;
+                if (joueur_x > 1920 - joueur_largeur) joueur_x = 1920 - joueur_largeur;
+                if (joueur_y < 0) joueur_y = 0;
+                if (joueur_y > 1080 - joueur_hauteur) joueur_y = 1080 - joueur_hauteur;
+            }
+
+            dessiner();
+            requestAnimationFrame(update);
+        }
+
+        // Dessin des graphismes (Équivalent de tes pygame.draw.rect)
+        function dessiner() {
+            // Fond gris foncé
+            ctx.fillStyle = "#1e1e1e";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (etat_jeu === "JEU") {
+                // Les chemins gris
+                ctx.fillStyle = "#3c3c3c";
+                ctx.fillRect(0, 100, 400, 200);
+                ctx.fillRect(400, 100, 200, 600);
+                ctx.fillRect(600, 500, 600, 200);
+
+                // Coffre (Jaune)
+                ctx.fillStyle = "#ffff00";
+                ctx.fillRect(1200, 400, 250, 400);
+
+                // Ton perso (Vert)
+                ctx.fillStyle = "#00ff00";
+                ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
+            }
+        }
+
+        // Lancement automatique du jeu
+        update();
+    </script>
 </body>
 </html>
