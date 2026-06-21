@@ -16,7 +16,7 @@ horloge = pygame.time.Clock()
 # Variables du jeu
 hp_coffre = 100
 argent = 0
-vague_actuelle = 1
+vague_actuelle = 5
 degats_joueur = 10
 etat_jeu = "JEU" 
 
