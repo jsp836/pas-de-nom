@@ -81,14 +81,14 @@
             let joueur_hauteur = 70;   
             let joueur_x = window.innerWidth / 2 - joueur_largeur / 2;        
             let joueur_y = window.innerHeight / 2 - joueur_hauteur / 2 + 180;       
-            let joueur_vitesse = 4; // Divisée par 2 (avant c'était 8)
+            let joueur_vitesse = 4; 
             let joueur_degats = 500;
 
             let cible_x = joueur_x;
             let cible_y = joueur_y;
             let mode_tactile = false;
 
-            // --- ENEMIS ---
+            // --- ENNEMIS ---
             let liste_ennemis = [];
             let dernier_spawn = 0;
 
@@ -106,3 +106,60 @@
             }
 
             canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
+            canvas.addEventListener("touchstart", (e) => {
+                if(e.touches.length > 0) {
+                    gererAction(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            });
+            canvas.addEventListener("touchmove", (e) => {
+                e.preventDefault();
+                if(e.touches.length > 0) {
+                    gererAction(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: false });
+
+            function faireSpawnEnnemis() {
+                let coins = [
+                    {x: 0, y: 0},                         
+                    {x: canvas.width, y: 0},              
+                    {x: 0, y: canvas.height},             
+                    {x: canvas.width, y: canvas.height}   
+                ];
+
+                coins.forEach(coin => {
+                    liste_ennemis.push({
+                        x: coin.x - 25,
+                        y: coin.y - 25,
+                        largeur: 50,
+                        hauteur: 50,
+                        vitesse: 4, 
+                        hp: 2000,
+                        max_hp: 2000,
+                        degats: 100,
+                        invulnerable_timer: 0 
+                    });
+                });
+            }
+
+            function collision(rect1, rect2) {
+                return rect1.x < rect2.x + rect2.largeur &&
+                       rect1.x + rect1.largeur > rect2.x &&
+                       rect1.y < rect2.y + rect2.hauteur &&
+                       rect1.y + rect1.hauteur > rect2.y;
+            }
+
+            function update() {
+                if (etat_jeu === "JEU") {
+                    let maintenant = Date.now();
+                    
+                    if (maintenant - dernier_spawn > 1000) {
+                        faireSpawnEnnemis();
+                        dernier_spawn = maintenant;
+                    }
+
+                    if (mode_tactile) {
+                        let dx = cible_x - joueur_x;
+                        let dy = cible_y - joueur_y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance > joueur_vitesse) {
+                            joueur_x += (dx /
