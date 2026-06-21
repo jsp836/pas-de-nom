@@ -68,9 +68,9 @@ async def main():
         
         if etat_jeu == "JEU":
             # Les chemins gris (adaptés pour le grand écran)
-            pygame.draw.rect(fenetre, (60, 60, 60), (0, 100, 400, 200))
-            pygame.draw.rect(fenetre, (60, 60, 60), (400, 100, 200, 600))
-            pygame.draw.rect(fenetre, (60, 60, 60), (600, 500, 600, 200))
+            pygame.draw.rect(fenetre, (60, 60, 60), (0, 0, 400, 200))
+            pygame.draw.rect(fenetre, (60, 60, 60), (400, 0, 200, 200))
+            pygame.draw.rect(fenetre, (60, 60, 60), (600, 200, 600, 200))
             
             # Coffre (Jaune) placé à droite
             pygame.draw.rect(fenetre, (255, 255, 0), (1200, 400, 250, 400))
