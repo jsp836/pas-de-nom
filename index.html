@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre !</title>
+    <title>Mon Jeu Python Propre</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         html, body {
             margin: 0;
@@ -12,190 +14,20 @@
             height: 100%;
             overflow: hidden;
             background-color: #111;
-            touch-action: none; 
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: sans-serif;
         }
-        /* Le jeu garde ses proportions sans s'aplatir */
         canvas {
-            max-width: 100vw;
-            max-height: 100vh;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
             display: block;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-        }
-        /* Zone pour les boutons en haut à droite */
-        #interface-haut {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            display: flex;
-            gap: 10px;
-            z-index: 10;
-        }
-        /* Style des boutons */
-        .btn-jeu {
-            background-color: rgba(0, 0, 0, 0.6);
-            color: white;
-            border: 2px solid #fff;
-            padding: 10px 15px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 8px;
-            user-select: none;
-            transition: 0.2s;
-        }
-        .btn-jeu:hover {
-            background-color: #fff;
-            color: #000;
-        }
-        .btn-quitter {
-            border-color: #ff4d4d;
-            color: #ff4d4d;
-        }
-        .btn-quitter:hover {
-            background-color: #ff4d4d;
-            color: #fff;
         }
     </style>
 </head>
 <body>
 
-    <div id="interface-haut">
-        <button class="btn-jeu" id="btnPleinEcran">📺 Plein Écran</button>
-        <button class="btn-jeu btn-quitter" id="btnQuitter">❌</button>
-    </div>
+    <script type="py" config='{"packages":["pygame"]}' src="jeu.py"></script>
 
-    <canvas id="jeuCanvas"></canvas>
-
-    <script>
-        const canvas = document.getElementById("jeuCanvas");
-        const ctx = canvas.getContext("2d");
-
-        // Taille de base logique du jeu
-        canvas.width = 1920;
-        canvas.height = 1080;
-
-        // --- GESTION DU PLEIN ÉCRAN ET DE LA CROIX ---
-        const btnPleinEcran = document.getElementById("btnPleinEcran");
-        const btnQuitter = document.getElementById("btnQuitter");
-
-        btnPleinEcran.addEventListener("click", () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch((err) => {
-                    alert(`Erreur plein écran: ${err.message}`);
-                });
-                btnPleinEcran.innerText = "🔍 Réduire";
-            } else {
-                document.exitFullscreen();
-                btnPleinEcran.innerText = "📺 Plein Écran";
-            }
-        });
-
-        btnQuitter.addEventListener("click", () => {
-            if (confirm("Voulez-vous vraiment quitter le jeu ?")) {
-                // Essaye de fermer l'onglet, sinon redirige vers une page vide
-                window.close();
-                setTimeout(() => {
-                    window.location.href = "about:blank";
-                }, 500);
-            }
-        });
-
-        // --- VARIABLES DU JEU ---
-        let hp_coffre = 100;
-        let argent = 0;
-        let vague_actuelle = 1;
-        let etat_jeu = "JEU"; 
-
-        // --- CONFIGURATION DE TON PERSO VERT ---
-        let joueur_x = 1400;        
-        let joueur_y = 500;        
-        let joueur_vitesse = 12;   
-        let joueur_largeur = 70;   
-        let joueur_hauteur = 70;   
-
-        let cible_x = joueur_x;
-        let cible_y = joueur_y;
-        let mode_tactile = false;
-
-        // --- GESTION DU CLAVIER (PC) ---
-        let touches = {};
-        window.addEventListener("keydown", (e) => {
-            touches[e.code] = true;
-            mode_tactile = false;
-        });
-        window.addEventListener("keyup", (e) => touches[e.code] = false);
-
-        // --- GESTION TACTILE CORRIGÉE ---
-        function gererAction(clientX, clientY) {
-            mode_tactile = true;
-            const rect = canvas.getBoundingClientRect();
-            cible_x = ((clientX - rect.left) / rect.width) * canvas.width - joueur_largeur / 2;
-            cible_y = ((clientY - rect.top) / rect.height) * canvas.height - joueur_hauteur / 2;
-        }
-
-        canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
-        canvas.addEventListener("touchstart", (e) => {
-            gererAction(e.touches[0].clientX, e.touches[0].clientY);
-        });
-        canvas.addEventListener("touchmove", (e) => {
-            e.preventDefault();
-            gererAction(e.touches[0].clientX, e.touches[0].clientY);
-        }, { passive: false });
-
-        function update() {
-            if (etat_jeu === "JEU") {
-                if (mode_tactile) {
-                    let dx = cible_x - joueur_x;
-                    let dy = cible_y - joueur_y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance > joueur_vitesse) {
-                        joueur_x += (dx / distance) * joueur_vitesse;
-                        joueur_y += (dy / distance) * joueur_vitesse;
-                    }
-                } else {
-                    if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
-                    if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
-                    if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
-                    if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
-                }
-                
-                if (joueur_x < 0) joueur_x = 0;
-                if (joueur_x > canvas.width - joueur_largeur) joueur_x = canvas.width - joueur_largeur;
-                if (joueur_y < 0) joueur_y = 0;
-                if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
-            }
-
-            dessiner();
-            requestAnimationFrame(update);
-        }
-
-        function dessiner() {
-            ctx.fillStyle = "#1e1e1e";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            if (etat_jeu === "JEU") {
-                // Chemins gris
-                ctx.fillStyle = "#3c3c3c";
-                ctx.fillRect(0, 100, 400, 200);
-                ctx.fillRect(400, 100, 200, 600);
-                ctx.fillRect(600, 500, 600, 200);
-
-                // Coffre (Jaune)
-                ctx.fillStyle = "#ffff00";
-                ctx.fillRect(1200, 400, 250, 400);
-
-                // Perso (Vert)
-                ctx.fillStyle = "#00ff00";
-                ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
-            }
-        }
-
-        update();
-    </script>
 </body>
 </html>
