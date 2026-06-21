@@ -16,6 +16,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            font-family: sans-serif;
         }
         /* Le jeu garde ses proportions sans s'aplatir */
         canvas {
@@ -24,9 +25,48 @@
             display: block;
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
+        /* Zone pour les boutons en haut à droite */
+        #interface-haut {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        /* Style des boutons */
+        .btn-jeu {
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: 2px solid #fff;
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            user-select: none;
+            transition: 0.2s;
+        }
+        .btn-jeu:hover {
+            background-color: #fff;
+            color: #000;
+        }
+        .btn-quitter {
+            border-color: #ff4d4d;
+            color: #ff4d4d;
+        }
+        .btn-quitter:hover {
+            background-color: #ff4d4d;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
+
+    <div id="interface-haut">
+        <button class="btn-jeu" id="btnPleinEcran">📺 Plein Écran</button>
+        <button class="btn-jeu btn-quitter" id="btnQuitter">❌</button>
+    </div>
 
     <canvas id="jeuCanvas"></canvas>
 
@@ -37,6 +77,32 @@
         // Taille de base logique du jeu
         canvas.width = 1920;
         canvas.height = 1080;
+
+        // --- GESTION DU PLEIN ÉCRAN ET DE LA CROIX ---
+        const btnPleinEcran = document.getElementById("btnPleinEcran");
+        const btnQuitter = document.getElementById("btnQuitter");
+
+        btnPleinEcran.addEventListener("click", () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch((err) => {
+                    alert(`Erreur plein écran: ${err.message}`);
+                });
+                btnPleinEcran.innerText = "🔍 Réduire";
+            } else {
+                document.exitFullscreen();
+                btnPleinEcran.innerText = "📺 Plein Écran";
+            }
+        });
+
+        btnQuitter.addEventListener("click", () => {
+            if (confirm("Voulez-vous vraiment quitter le jeu ?")) {
+                // Essaye de fermer l'onglet, sinon redirige vers une page vide
+                window.close();
+                setTimeout(() => {
+                    window.location.href = "about:blank";
+                }, 500);
+            }
+        });
 
         // --- VARIABLES DU JEU ---
         let hp_coffre = 100;
@@ -63,11 +129,10 @@
         });
         window.addEventListener("keyup", (e) => touches[e.code] = false);
 
-        // --- GESTION TACTILE CORRIGÉE POUR L'ÉCRAN ---
+        // --- GESTION TACTILE CORRIGÉE ---
         function gererAction(clientX, clientY) {
             mode_tactile = true;
             const rect = canvas.getBoundingClientRect();
-            // Calcule la vraie position même si le canvas est redimensionné
             cible_x = ((clientX - rect.left) / rect.width) * canvas.width - joueur_largeur / 2;
             cible_y = ((clientY - rect.top) / rect.height) * canvas.height - joueur_hauteur / 2;
         }
