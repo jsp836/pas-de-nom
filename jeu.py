@@ -23,7 +23,7 @@ etat_jeu = "JEU"
 # --- CONFIGURATION DE TON PERSO VERT ---
 joueur_x = 1400        
 joueur_y = 500        
-joueur_vitesse = 10    
+joueur_vitesse = 5    
 joueur_largeur = 70   
 joueur_hauteur = 70   
 
