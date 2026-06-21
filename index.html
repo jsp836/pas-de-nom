@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre !</title>
+    <title>Mon Jeu Python</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         html, body {
             margin: 0;
@@ -12,167 +14,20 @@
             height: 100%;
             overflow: hidden;
             background-color: #111;
-            touch-action: none; 
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            font-family: sans-serif;
+            align-items: center;
         }
-        .barre-outils {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            display: flex;
-            gap: 15px;
-            z-index: 10;
-        }
-        .btn {
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            border: 2px solid #555;
-            padding: 8px 16px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        .btn:hover { background: #444; }
-        .btn-rouge { border-color: #ff4d4d; color: #ff4d4d; }
-        .btn-rouge:hover { background: #ff4d4d; color: #fff; }
-        
         canvas {
-            width: 100vw;
-            height: 100vh;
+            width: 100vw !important;
+            height: 100vh !important;
             display: block;
-            background-color: #1e1e1e;
         }
     </style>
 </head>
 <body>
 
-    <div class="barre-outils">
-        <button class="btn" onclick="document.documentElement.requestFullscreen()">📺 Plein Écran</button>
-        <button class="btn btn-rouge" onclick="window.close(); window.location.href='about:blank';">❌ Quitter</button>
-    </div>
+    <script type="py" config='{"packages":["pygame"]}' src="jeu.py"></script>
 
-    <canvas id="jeuCanvas"></canvas>
-
-    <script>
-        window.addEventListener("load", function() {
-            try {
-                const canvas = document.getElementById("jeuCanvas");
-                const ctx = canvas.getContext("2d");
-
-                function redimensionner() {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                }
-                window.addEventListener('resize', redimensionner);
-                redimensionner();
-
-                let hp_coffre = 100;
-                let argent = 0;
-                let vague_actuelle = 1;
-                let etat_jeu = "JEU"; 
-
-                let joueur_largeur = 70;   
-                let joueur_hauteur = 70;   
-                let joueur_x = canvas.width / 2 - joueur_largeur / 2;        
-                let joueur_y = canvas.height / 2 - joueur_hauteur / 2 + 180;       
-                let joueur_vitesse = 8;   
-
-                let cible_x = joueur_x;
-                let cible_y = joueur_y;
-                let mode_tactile = false;
-
-                let touches = {};
-                window.addEventListener("keydown", (e) => {
-                    touches[e.code] = true;
-                    mode_tactile = false;
-                });
-                window.addEventListener("keyup", (e) => touches[e.code] = false);
-
-                function gererAction(clientX, clientY) {
-                    mode_tactile = true;
-                    cible_x = clientX - joueur_largeur / 2;
-                    cible_y = clientY - joueur_hauteur / 2;
-                }
-
-                canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
-                canvas.addEventListener("touchstart", (e) => gererAction(e.touches[0].clientX, e.touches[0].clientY));
-                canvas.addEventListener("touchmove", (e) => {
-                    e.preventDefault();
-                    gererAction(e.touches[0].clientX, e.touches[0].clientY);
-                }, { passive: false });
-
-                function update() {
-                    if (etat_jeu === "JEU") {
-                        if (mode_tactile) {
-                            let dx = cible_x - joueur_x;
-                            let dy = cible_y - joueur_y;
-                            let distance = Math.sqrt(dx * dx + dy * dy);
-                            if (distance > joueur_vitesse) {
-                                joueur_x += (dx / distance) * joueur_vitesse;
-                                joueur_y += (dy / distance) * joueur_vitesse;
-                            }
-                        } else {
-                            if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
-                            if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
-                            if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
-                            if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
-                        }
-                        
-                        if (joueur_x < 0) joueur_x = 0;
-                        if (joueur_x > canvas.width - joueur_largeur) joueur_x = canvas.width - joueur_largeur;
-                        if (joueur_y < 0) joueur_y = 0;
-                        if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
-                    }
-
-                    dessiner();
-                    requestAnimationFrame(update);
-                }
-
-                function dessiner() {
-                    ctx.fillStyle = "#1e1e1e";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    let centre_x = canvas.width / 2;
-                    let centre_y = canvas.height / 2;
-                    let taille_coffre = 150;
-                    let largeur_chemin = 120;
-
-                    if (etat_jeu === "JEU") {
-                        // --- DESSIN DES CHEMINS EN DIAGONALE (FORMANT UN X) ---
-                        ctx.fillStyle = "#3c3c3c";
-                        ctx.lineWidth = largeur_chemin;
-                        ctx.lineCap = "round";
-
-                        ctx.beginPath();
-                        // Diagonale 1 : Coin haut-gauche vers Coin bas-droite
-                        ctx.moveTo(0, 0);
-                        ctx.lineTo(canvas.width, canvas.height);
-                        
-                        // Diagonale 2 : Coin haut-droite vers Coin bas-gauche
-                        ctx.moveTo(canvas.width, 0);
-                        ctx.lineTo(0, canvas.height);
-                        ctx.stroke();
-
-                        // --- LE COFFRE AU MILIEU (Jaune) ---
-                        ctx.fillStyle = "#ffff00";
-                        ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
-
-                        // --- TON PERSO (Vert) ---
-                        ctx.fillStyle = "#00ff00";
-                        ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
-                    }
-                }
-
-                update();
-            } catch (erreur) {
-                alert("Erreur : " + erreur.message);
-            }
-        });
-    </script>
 </body>
 </html>
