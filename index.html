@@ -2,29 +2,29 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Jeu Python Stable</title>
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Défends le Coffre !</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
+            overflow: hidden;
             background-color: #111;
-            color: #fff;
-            font-family: sans-serif;
+            touch-action: none; 
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            font-family: sans-serif;
         }
-        /* Zone des boutons */
+        /* Zone des boutons du haut */
         .barre-outils {
             margin-bottom: 10px;
             display: flex;
             gap: 15px;
+            z-index: 10;
         }
         .btn {
             background: #222;
@@ -34,15 +34,19 @@
             font-size: 16px;
             cursor: pointer;
             border-radius: 5px;
+            font-weight: bold;
         }
         .btn:hover { background: #444; }
         .btn-rouge { border-color: #ff4d4d; color: #ff4d4d; }
         .btn-rouge:hover { background: #ff4d4d; color: #fff; }
-        /* Ajuste la taille du jeu Pygame à l'écran */
+        
+        /* Le jeu garde ses proportions (1200x800) sans s'aplatir */
         canvas {
-            max-width: 90vw !important;
-            max-height: 80vh !important;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            max-width: 95vw;
+            max-height: 85vh;
+            display: block;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            background-color: #1e1e1e;
         }
     </style>
 </head>
@@ -53,7 +57,109 @@
         <button class="btn btn-rouge" onclick="window.close(); window.location.href='about:blank';">❌ Quitter</button>
     </div>
 
-    <script type="py" config='{"packages":["pygame"]}' src="jeu.py"></script>
+    <canvas id="jeuCanvas" width="1200" height="800"></canvas>
 
+    <script>
+        const canvas = document.getElementById("jeuCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // --- VARIABLES ---
+        let hp_coffre = 100;
+        let argent = 0;
+        let vague_actuelle = 1;
+        let etat_jeu = "JEU"; 
+
+        // --- PERSO VERT ---
+        let joueur_x = 900;        
+        let joueur_y = 500;        
+        let joueur_vitesse = 8;   
+        let joueur_largeur = 70;   
+        let joueur_hauteur = 70;   
+
+        let cible_x = joueur_x;
+        let cible_y = joueur_y;
+        let mode_tactile = false;
+
+        // --- CLAVIER (PC) ---
+        let touches = {};
+        window.addEventListener("keydown", (e) => {
+            touches[e.code] = true;
+            mode_tactile = false;
+        });
+        window.addEventListener("keyup", (e) => touches[e.code] = false);
+
+        // --- TACTILE (TÉLÉPHONE) ---
+        function gererAction(clientX, clientY) {
+            mode_tactile = true;
+            const rect = canvas.getBoundingClientRect();
+            cible_x = ((clientX - rect.left) / rect.width) * canvas.width - joueur_largeur / 2;
+            cible_y = ((clientY - rect.top) / rect.height) * canvas.height - joueur_hauteur / 2;
+        }
+
+        canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
+        canvas.addEventListener("touchstart", (e) => gererAction(e.touches[0].clientX, e.touches[0].clientY));
+        canvas.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            gererAction(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+
+        // --- BOUCLE DU JEU ---
+        function update() {
+            if (etat_jeu === "JEU") {
+                if (mode_tactile) {
+                    let dx = cible_x - joueur_x;
+                    let dy = cible_y - joueur_y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > joueur_vitesse) {
+                        joueur_x += (dx / distance) * joueur_vitesse;
+                        joueur_y += (dy / distance) * joueur_vitesse;
+                    }
+                } else {
+                    if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
+                    if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
+                    if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
+                    if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
+                }
+                
+                // Murs
+                if (joueur_x < 0) joueur_x = 0;
+                if (joueur_x > canvas.width - joueur_largeur) joueur_x = canvas.width - joueur_largeur;
+                if (joueur_y < 0) joueur_y = 0;
+                if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
+            }
+
+            dessiner();
+            requestAnimationFrame(update);
+        }
+
+        function dessiner() {
+            // Fond
+            ctx.fillStyle = "#1e1e1e";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (etat_jeu === "JEU") {
+                // Chemins gris (exactement comme ton Pygame d'origine)
+                ctx.fillStyle = "#3c3c3c";
+                ctx.fillRect(0, 0, 200, 400);
+                ctx.fillRect(200, 200, 75, 200);
+                ctx.fillRect(275, 0, 200, 400);
+                ctx.fillRect(475, 0, 75, 200);
+                ctx.fillRect(550, 0, 200, 400);
+                ctx.fillRect(750, 300, 100, 100);
+                ctx.fillRect(0, 750, 200, 400);
+                ctx.fillRect(200, 810, 75, 200);
+
+                // Coffre (Jaune)
+                ctx.fillStyle = "#ffff00";
+                ctx.fillRect(850, 300, 300, 400);
+
+                // Ton perso (Vert)
+                ctx.fillStyle = "#00ff00";
+                ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
+            }
+        }
+
+        update();
+    </script>
 </body>
 </html>
