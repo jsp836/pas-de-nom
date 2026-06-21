@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mon Jeu Python Propre</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Jeu Python Stable</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
@@ -12,20 +12,46 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
             background-color: #111;
+            color: #fff;
+            font-family: sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
         }
+        /* Zone des boutons */
+        .barre-outils {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            background: #222;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 8px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .btn:hover { background: #444; }
+        .btn-rouge { border-color: #ff4d4d; color: #ff4d4d; }
+        .btn-rouge:hover { background: #ff4d4d; color: #fff; }
+        /* Ajuste la taille du jeu Pygame à l'écran */
         canvas {
-            max-width: 100vw !important;
-            max-height: 100vh !important;
-            display: block;
+            max-width: 90vw !important;
+            max-height: 80vh !important;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
     </style>
 </head>
 <body>
+
+    <div class="barre-outils">
+        <button class="btn" onclick="document.documentElement.requestFullscreen()">📺 Plein Écran</button>
+        <button class="btn btn-rouge" onclick="window.close(); window.location.href='about:blank';">❌ Quitter</button>
+    </div>
 
     <script type="py" config='{"packages":["pygame"]}' src="jeu.py"></script>
 
