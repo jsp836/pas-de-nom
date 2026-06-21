@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Défends le Coffre !</title>
     <style>
         /* Supprime toutes les marges pour un vrai plein écran */
@@ -13,6 +13,8 @@
             height: 100%;
             overflow: hidden;
             background-color: #1e1e1e;
+            /* Empêche les gestes de zoom par défaut sur téléphone */
+            touch-action: none; 
         }
         /* Le jeu s'étire automatiquement sur tout l'écran */
         canvas {
@@ -30,7 +32,7 @@
         const canvas = document.getElementById("jeuCanvas");
         const ctx = canvas.getContext("2d");
 
-        // --- VARIABLES DU JEU (Comme dans ton Python) ---
+        // --- VARIABLES DU JEU ---
         let hp_coffre = 100;
         let argent = 0;
         let vague_actuelle = 1;
@@ -39,26 +41,64 @@
         // --- CONFIGURATION DE TON PERSO VERT ---
         let joueur_x = 1400;        
         let joueur_y = 500;        
-        let joueur_vitesse = 10;    
+        let joueur_vitesse = 12; // Un peu plus rapide pour le grand écran   
         let joueur_largeur = 70;   
         let joueur_hauteur = 70;   
 
-        // Gestion du clavier
+        // Cible pour le déplacement tactile (téléphone)
+        let cible_x = joueur_x;
+        let cible_y = joueur_y;
+        let mode_tactile = false;
+
+        // --- GESTION DU CLAVIER (PC) ---
         let touches = {};
-        window.addEventListener("keydown", (e) => touches[e.code] = true);
+        window.addEventListener("keydown", (e) => {
+            touches[e.code] = true;
+            mode_tactile = false; // Si on touche au clavier, on désactive le ciblage tactile
+        });
         window.addEventListener("keyup", (e) => touches[e.code] = false);
+
+        // --- GESTION DU TACTILE / CLIC (TÉLÉPHONE & SOURIS) ---
+        function gererAction(clientX, clientY) {
+            mode_tactile = true;
+            const rect = canvas.getBoundingClientRect();
+            // Convertit la position du doigt sur l'écran par rapport aux dimensions 1920x1080
+            cible_x = (clientX - rect.left) * (canvas.width / rect.width) - joueur_largeur / 2;
+            cible_y = (clientY - rect.top) * (canvas.height / rect.height) - joueur_hauteur / 2;
+        }
+
+        canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
+        canvas.addEventListener("touchstart", (e) => {
+            gererAction(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        canvas.addEventListener("touchmove", (e) => {
+            e.preventDefault(); // Empêche la page de bouger sur téléphone
+            gererAction(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
 
         // Boucle principale du jeu
         function update() {
             if (etat_jeu === "JEU") {
                 
-                // --- DÉPLACEMENT AVEC LES TOUCHES (Flèches du clavier) ---
-                if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
-                if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
-                if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
-                if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
+                if (mode_tactile) {
+                    // --- MODE TÉLÉPHONE : Le perso avance vers ton doigt ---
+                    let dx = cible_x - joueur_x;
+                    let dy = cible_y - joueur_y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > joueur_vitesse) {
+                        joueur_x += (dx / distance) * joueur_vitesse;
+                        joueur_y += (dy / distance) * joueur_vitesse;
+                    }
+                } else {
+                    // --- MODE PC : Déplacement avec les flèches du clavier ---
+                    if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
+                    if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
+                    if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
+                    if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
+                }
                 
-                // Gestion des murs (Ajustée à la taille 1920x1080)
+                // Gestion des murs (Bloqué à l'intérieur de l'écran 1920x1080)
                 if (joueur_x < 0) joueur_x = 0;
                 if (joueur_x > 1920 - joueur_largeur) joueur_x = 1920 - joueur_largeur;
                 if (joueur_y < 0) joueur_y = 0;
