@@ -5,10 +5,10 @@ import asyncio
 # Initialisation de Pygame
 pygame.init()
 
-# CONFIGURATION PLEIN ÉCRAN AUTOMATIQUE
-fenetre = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-# On récupère la taille exacte de l'écran de l'utilisateur
-LARGEUR, HAUTEUR = fenetre.get_size()
+# On utilise une grande taille standard que le web gère parfaitement
+LARGEUR = 1920
+HAUTEUR = 1080
+fenetre = pygame.display.set_mode((LARGEUR, HAUTEUR))
 
 pygame.display.set_caption("Défends le Coffre !")
 horloge = pygame.time.Clock()
@@ -21,9 +21,9 @@ degats_joueur = 10
 etat_jeu = "JEU" 
 
 # --- CONFIGURATION DE TON PERSO VERT ---
-joueur_x = LARGEUR // 2        
-joueur_y = HAUTEUR // 2        
-joueur_vitesse = 8    
+joueur_x = 1400        
+joueur_y = 500        
+joueur_vitesse = 10    
 joueur_largeur = 70   
 joueur_hauteur = 70   
 
@@ -54,7 +54,7 @@ async def main():
             if touches[pygame.K_UP]:    joueur_y -= joueur_vitesse
             if touches[pygame.K_DOWN]:  joueur_y += joueur_vitesse
             
-            # Gestion des murs automatique selon la taille de l'écran
+            # Gestion des murs ajustée à la taille 1920x1080
             if joueur_x < 0: joueur_x = 0
             if joueur_x > LARGEUR - joueur_largeur: joueur_x = LARGEUR - joueur_largeur
             if joueur_y < 0: joueur_y = 0
@@ -67,18 +67,13 @@ async def main():
         fenetre.fill((30, 30, 30)) 
         
         if etat_jeu == "JEU":
-            # Les chemins gris
-            pygame.draw.rect(fenetre, (60, 60, 60), (0, 0, 200, 400))
-            pygame.draw.rect(fenetre, (60, 60, 60), (200, 200, 75, 200))
-            pygame.draw.rect(fenetre, (60, 60, 60), (275, 0, 200, 400))
-            pygame.draw.rect(fenetre, (60, 60, 60), (475, 0, 75, 200))
-            pygame.draw.rect(fenetre, (60, 60, 60), (550, 0, 200, 400))
-            pygame.draw.rect(fenetre, (60, 60, 60), (750, 300, 100, 100))
-            pygame.draw.rect(fenetre, (60, 60, 60), (0, 750, 200, 400))
-            pygame.draw.rect(fenetre, (60, 60, 60), (200, 810, 75, 200))
+            # Les chemins gris (adaptés pour le grand écran)
+            pygame.draw.rect(fenetre, (60, 60, 60), (0, 100, 400, 200))
+            pygame.draw.rect(fenetre, (60, 60, 60), (400, 100, 200, 600))
+            pygame.draw.rect(fenetre, (60, 60, 60), (600, 500, 600, 200))
             
-            # Coffre (Jaune) positionné par rapport au bord droit de l'écran
-            pygame.draw.rect(fenetre, (255, 255, 0), (LARGEUR - 350, HAUTEUR // 2 - 200, 300, 400))
+            # Coffre (Jaune) placé à droite
+            pygame.draw.rect(fenetre, (255, 255, 0), (1200, 400, 250, 400))
             
             # Ton perso (Vert)
             pygame.draw.rect(fenetre, (0, 255, 0), (joueur_x, joueur_y, joueur_largeur, joueur_hauteur))
