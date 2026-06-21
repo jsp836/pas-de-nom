@@ -3,30 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Jeu Python</title>
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <title>Test Jeu</title>
+    <link rel="stylesheet" href="https://pyscript.net/snapshots/2023.05.1/pyscript.css" />
+    <script defer src="https://pyscript.net/snapshots/2023.05.1/pyscript.js"></script>
     <style>
-        body { 
-            background-color: #1a1a1a; 
-            color: white; 
-            text-align: center; 
-            font-family: sans-serif; 
-            margin: 0;
-            padding: 20px;
-        }
-        #game-container {
-            margin: 20px auto;
-            max-width: 100%;
-        }
+        body { background-color: #111; color: #fff; text-align: center; font-family: sans-serif; padding: 50px; }
     </style>
 </head>
 <body>
-    <h1>🎮 Lancement du jeu...</h1>
-    <p>Patiente quelques secondes, le moteur Python démarre dans ton navigateur !</p>
-    
-    <div id="game-container">
-        <script type="py" src="jeu.py" config='{"packages": ["pygame"]}'></script>
-    </div>
+
+    <h1>🕹️ Phase de chargement</h1>
+    <p>Si rien ne se passe, l'erreur s'affichera juste en dessous :</p>
+
+    <py-config>
+        packages = ["pygame"]
+    </py-config>
+
+    <py-script src="jeu.py"></py-script>
+
 </body>
 </html>
