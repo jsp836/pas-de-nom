@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v1.5</title>
+    <title>Défends le Coffre ! v1.6</title>
     <style>
         html, body {
             margin: 0;
@@ -22,25 +22,22 @@
         }
         .barre-outils {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 10px;
+            right: 10px;
             display: flex;
-            gap: 15px;
+            gap: 10px;
             z-index: 10;
         }
         .btn {
             background: rgba(0, 0, 0, 0.7);
             color: #fff;
             border: 2px solid #555;
-            padding: 8px 16px;
-            font-size: 16px;
+            padding: 5px 10px;
+            font-size: 12px;
             cursor: pointer;
             border-radius: 5px;
             font-weight: bold;
         }
-        .btn:hover { background: #444; }
-        .btn-rouge { border-color: #ff4d4d; color: #ff4d4d; }
-        .btn-rouge:hover { background: #ff4d4d; color: #fff; }
         
         canvas {
             width: 100vw;
@@ -54,7 +51,6 @@
 
     <div class="barre-outils">
         <button class="btn" onclick="document.documentElement.requestFullscreen()">📺 Plein Écran</button>
-        <button class="btn btn-rouge" onclick="window.close(); window.location.href='about:blank';">❌ Quitter</button>
     </div>
 
     <canvas id="jeuCanvas"></canvas>
@@ -63,33 +59,36 @@
         const canvas = document.getElementById("jeuCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Variables dynamiques adaptées au mobile
+        // Variables dynamiques réajustables
         let taille_coffre = 100; 
         let joueur_largeur = 50;   
         let joueur_hauteur = 50;   
         let joueur_x = 0;
         let joueur_y = 0;
-        let positions_initialisees = false;
 
         function redimensionner() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             
-            // On adapte la taille des éléments selon la taille de l'écran (plus petit sur tel)
+            // Calcul automatique basé sur la taille de l'écran actuel
             let plus_petite_dimension = Math.min(canvas.width, canvas.height);
             taille_coffre = plus_petite_dimension * 0.22; 
             joueur_largeur = plus_petite_dimension * 0.1;
             joueur_hauteur = plus_petite_dimension * 0.1;
 
-            if (!positions_initialisees && canvas.width > 0) {
-                joueur_x = canvas.width / 2 - joueur_largeur / 2;
-                joueur_y = canvas.height / 2 - joueur_hauteur / 2 + (taille_coffre * 1.2);
-                cible_x = joueur_x;
-                cible_y = joueur_y;
-                positions_initialisees = true;
-            }
+            // Force le joueur à se replacer au bon endroit par rapport au centre, même si on tourne l'écran
+            joueur_x = canvas.width / 2 - joueur_largeur / 2;
+            joueur_y = canvas.height / 2 - joueur_hauteur / 2 + (taille_coffre * 1.1);
+            cible_x = joueur_x;
+            cible_y = joueur_y;
         }
+        
+        // Écoute les changements de taille ET de rotation du téléphone
         window.addEventListener('resize', redimensionner);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(redimensionner, 200); // Petit délai pour laisser le téléphone tourner
+        });
+        
         redimensionner();
 
         // --- STATS ---
@@ -308,23 +307,20 @@
                 });
             }
 
-            // Dessin du coffre adapté
             ctx.fillStyle = "#ffff00";
             ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
 
-            // Barre de vie adaptée
-            let largeur_barre = Math.min(canvas.width * 0.6, 200);
+            let largeur_barre = Math.min(canvas.width * 0.5, 200);
             ctx.fillStyle = "rgba(0,0,0,0.5)";
-            ctx.fillRect(centre_x - largeur_barre / 2, centre_y - taille_coffre / 2 - 25, largeur_barre, 12);
+            ctx.fillRect(centre_x - largeur_barre / 2, centre_y - taille_coffre / 2 - 22, largeur_barre, 10);
             ctx.fillStyle = "#00ff00";
-            ctx.fillRect(centre_x - largeur_barre / 2, centre_y - taille_coffre / 2 - 25, (hp_coffre / max_hp_coffre) * largeur_barre, 12);
+            ctx.fillRect(centre_x - largeur_barre / 2, centre_y - taille_coffre / 2 - 22, (hp_coffre / max_hp_coffre) * largeur_barre, 10);
 
             ctx.fillStyle = "#fff";
-            ctx.font = "bold 12px sans-serif";
+            ctx.font = "bold 11px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText(hp_coffre + " HP", centre_x, centre_y - taille_coffre / 2 - 32);
+            ctx.fillText(hp_coffre + " HP", centre_x, centre_y - taille_coffre / 2 - 28);
 
-            // Joueur vert adapté
             ctx.fillStyle = "#00ff00";
             ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
 
@@ -337,6 +333,7 @@
                 
                 ctx.fillStyle = "#000";
                 ctx.font = "bold 45px sans-serif";
+                ctx.textAlign = "center";
                 ctx.fillText("▶", centre_x, centre_y + 15);
             }
 
