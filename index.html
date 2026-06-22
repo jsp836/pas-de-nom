@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v1.8</title>
+    <title>Défends le Coffre ! v2.1</title>
     <style>
         html, body {
             margin: 0;
@@ -20,7 +20,6 @@
             user-select: none;
         }
         
-        /* Bouton de démarrage spécial Mobile */
         #ecranDeDemarrage {
             position: absolute;
             top: 0;
@@ -94,7 +93,7 @@
         
         redimensionner();
 
-        // --- STATS DU JEU ---
+        // --- STATS ---
         let hp_coffre = 10000;
         let max_hp_coffre = 10000;
         let etat_jeu = "JEU"; 
@@ -116,23 +115,29 @@
         });
         window.addEventListener("keyup", (e) => touches[e.code] = false);
 
-        function gererAction(clientX, clientY) {
+        // Gestion propre et isolée du tactile
+        function enregistrerPositionDoigt(clientX, clientY) {
             if (!jeu_actif) return;
             mode_tactile = true;
             cible_x = clientX - joueur_largeur / 2;
             cible_y = clientY - joueur_hauteur / 2;
         }
 
-        canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
+        canvas.addEventListener("mousedown", (e) => enregistrerPositionDoigt(e.clientX, e.clientY));
+        
         canvas.addEventListener("touchstart", (e) => {
             if(e.touches.length > 0) {
-                gererAction(e.touches[0].clientX, e.touches[0].clientY);
+                enregistrerPositionDoigt(e.touches[0].clientX, e.touches[0].clientY);
             }
         });
+        
         canvas.addEventListener("touchmove", (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Bloque le zoom ou scroll du téléphone
             if(e.touches.length > 0) {
-                gererAction(e.touches[0].clientX, e.touches[0].clientY);
+                // Modifie uniquement la destination, sans toucher aux boucles du jeu
+                cible_x = e.touches[0].clientX - joueur_largeur / 2;
+                cible_y = e.touches[0].clientY - joueur_hauteur / 2;
+                mode_tactile = true;
             }
         }, { passive: false });
 
@@ -173,18 +178,15 @@
         }
 
         function lancerLeJeu() {
-            // Masque l'écran de démarrage HTML
             document.getElementById("ecranDeDemarrage").style.display = "none";
             jeu_actif = true;
             dernier_spawn = Date.now();
             
-            // Tente de passer en plein écran automatique sur mobile
             try {
                 document.documentElement.requestFullscreen();
             } catch (e) {}
 
             redimensionner();
-            // Démarre la boucle du jeu après le clic
             update();
         }
 
@@ -202,6 +204,7 @@
                     dernier_spawn = maintenant;
                 }
 
+                // Déplacement joueur fluide
                 if (mode_tactile) {
                     let dx = cible_x - joueur_x;
                     let dy = cible_y - joueur_y;
@@ -209,6 +212,9 @@
                     if (distance > joueur_vitesse) {
                         joueur_x += (dx / distance) * joueur_vitesse;
                         joueur_y += (dy / distance) * joueur_vitesse;
+                    } else {
+                        joueur_x = cible_x;
+                        joueur_y = cible_y;
                     }
                 } else {
                     if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
@@ -231,6 +237,7 @@
 
                 let rect_joueur = {x: joueur_x, y: joueur_y, largeur: joueur_largeur, hauteur: joueur_hauteur};
 
+                // Les ennemis bougent ici de manière totalement indépendante du tactile
                 for (let i = liste_ennemis.length - 1; i >= 0; i--) {
                     let e = liste_ennemis[i];
 
@@ -241,9 +248,12 @@
                     let dy = cible_ennemi_y - e.y;
                     let dist = Math.sqrt(dx * dx + dy * dy);
 
-                    if (dist > 5) {
+                    if (dist > e.vitesse) {
                         e.x += (dx / dist) * e.vitesse;
                         e.y += (dy / dist) * e.vitesse;
+                    } else {
+                        e.x = cible_ennemi_x;
+                        e.y = cible_ennemi_y;
                     }
 
                     if (e.invulnerable_timer > 0) e.invulnerable_timer--;
@@ -333,7 +343,6 @@
             }
         }
 
-        // On dessine juste une fois le fond noir au cas où avant le démarrage
         ctx.fillStyle = "#111";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     </script>
