@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v1.3</title>
+    <title>Défends le Coffre ! v1.4</title>
     <style>
         html, body {
             margin: 0;
@@ -60,281 +60,280 @@
     <canvas id="jeuCanvas"></canvas>
 
     <script>
-        window.addEventListener("load", function() {
-            const canvas = document.getElementById("jeuCanvas");
-            const ctx = canvas.getContext("2d");
+        const canvas = document.getElementById("jeuCanvas");
+        const ctx = canvas.getContext("2d");
 
-            function redimensionner() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            }
-            redimensionner();
-            window.addEventListener('resize', redimensionner);
+        function redimensionner() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        redimensionner();
+        window.addEventListener('resize', redimensionner);
 
-            // --- STATS ---
-            let hp_coffre = 10000;
-            let max_hp_coffre = 10000;
-            let etat_jeu = "MENU"; 
+        // --- STATS ---
+        let hp_coffre = 10000;
+        let max_hp_coffre = 10000;
+        let etat_jeu = "MENU"; 
 
-            // --- JOUEUR VERT ---
-            let joueur_largeur = 70;   
-            let joueur_hauteur = 70;   
-            let joueur_x = window.innerWidth / 2 - joueur_largeur / 2;        
-            let joueur_y = window.innerHeight / 2 - joueur_hauteur / 2 + 180;       
-            let joueur_vitesse = 8; // Le joueur reste super rapide (8)
-            let joueur_degats = 500;
+        // --- JOUEUR VERT ---
+        let joueur_largeur = 70;   
+        let joueur_hauteur = 70;   
+        let joueur_x = window.innerWidth / 2 - joueur_largeur / 2;        
+        let joueur_y = window.innerHeight / 2 - joueur_hauteur / 2 + 180;       
+        let joueur_vitesse = 8; 
+        let joueur_degats = 500;
 
-            let cible_x = joueur_x;
-            let cible_y = joueur_y;
-            let mode_tactile = false;
+        let cible_x = joueur_x;
+        let cible_y = joueur_y;
+        let mode_tactile = false;
 
-            // --- ENNEMIS ---
-            let liste_ennemis = [];
-            let dernier_spawn = 0;
-            let compteurs_coins = [0, 0, 0, 0]; 
+        // --- ENNEMIS ---
+        let liste_ennemis = [];
+        let dernier_spawn = 0;
+        let compteurs_coins = [0, 0, 0, 0]; 
 
-            // --- BOUTON DE DÉBUT ---
-            let bouton_start = {
-                x: 0,
-                y: 0,
-                largeur: 140,
-                hauteur: 80
-            };
+        // --- BOUTON DE DÉBUT ---
+        let bouton_start = {
+            x: 0,
+            y: 0,
+            largeur: 140,
+            hauteur: 80
+        };
 
-            let touches = {};
-            window.addEventListener("keydown", (e) => {
-                touches[e.code] = true;
-                mode_tactile = false;
-            });
-            window.addEventListener("keyup", (e) => touches[e.code] = false);
+        let touches = {};
+        window.addEventListener("keydown", (e) => {
+            touches[e.code] = true;
+            mode_tactile = false;
+        });
+        window.addEventListener("keyup", (e) => touches[e.code] = false);
 
-            function gererAction(clientX, clientY) {
-                if (etat_jeu === "MENU") {
-                    if (clientX >= bouton_start.x && clientX <= bouton_start.x + bouton_start.largeur &&
-                        clientY >= bouton_start.y && clientY <= bouton_start.y + bouton_start.hauteur) {
-                        etat_jeu = "JEU";
-                        dernier_spawn = Date.now();
-                    }
-                    return;
+        function gererAction(clientX, clientY) {
+            if (etat_jeu === "MENU") {
+                if (clientX >= bouton_start.x && clientX <= bouton_start.x + bouton_start.largeur &&
+                    clientY >= bouton_start.y && clientY <= bouton_start.y + bouton_start.hauteur) {
+                    etat_jeu = "JEU";
+                    dernier_spawn = Date.now();
                 }
-
-                if (etat_jeu === "JEU") {
-                    mode_tactile = true;
-                    cible_x = clientX - joueur_largeur / 2;
-                    cible_y = clientY - joueur_hauteur / 2;
-                }
+                return;
             }
 
-            canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
-            canvas.addEventListener("touchstart", (e) => {
-                if(e.touches.length > 0) {
-                    gererAction(e.touches[0].clientX, e.touches[0].clientY);
+            if (etat_jeu === "JEU") {
+                mode_tactile = true;
+                cible_x = clientX - joueur_largeur / 2;
+                cible_y = clientY - joueur_hauteur / 2;
+            }
+        }
+
+        canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
+        canvas.addEventListener("touchstart", (e) => {
+            if(e.touches.length > 0) {
+                gererAction(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        });
+        canvas.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            if(e.touches.length > 0) {
+                gererAction(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        function faireSpawnEnnemis() {
+            let coins = [
+                {x: 0, y: 0},                         
+                {x: canvas.width, y: 0},              
+                {x: 0, y: canvas.height},             
+                {x: canvas.width, y: canvas.height}   
+            ];
+
+            coins.forEach((coin, index) => {
+                if (compteurs_coins[index] < 10) {
+                    liste_ennemis.push({
+                        x: coin.x - 25,
+                        y: coin.y - 25,
+                        largeur: 50,
+                        hauteur: 50,
+                        vitesse: 4, 
+                        hp: 1000, 
+                        max_hp: 1000,
+                        degats: 100,
+                        invulnerable_timer: 0,
+                        coin_origine: index
+                    });
+                    compteurs_coins[index]++;
                 }
             });
-            canvas.addEventListener("touchmove", (e) => {
-                e.preventDefault();
-                if(e.touches.length > 0) {
-                    gererAction(e.touches[0].clientX, e.touches[0].clientY);
+        }
+
+        function collision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.largeur &&
+                   rect1.x + rect1.largeur > rect2.x &&
+                   rect1.y < rect2.y + rect2.hauteur &&
+                   rect1.y + rect1.hauteur > rect2.y;
+        }
+
+        function update() {
+            let centre_x = canvas.width / 2;
+            let centre_y = canvas.height / 2;
+
+            bouton_start.x = centre_x - bouton_start.largeur / 2;
+            bouton_start.y = centre_y - bouton_start.hauteur / 2;
+
+            if (etat_jeu === "JEU") {
+                let maintenant = Date.now();
+                
+                if (maintenant - dernier_spawn > 1000) {
+                    faireSpawnEnnemis();
+                    dernier_spawn = maintenant;
                 }
-            }, { passive: false });
 
-            function faireSpawnEnnemis() {
-                let coins = [
-                    {x: 0, y: 0},                         
-                    {x: canvas.width, y: 0},              
-                    {x: 0, y: canvas.height},             
-                    {x: canvas.width, y: canvas.height}   
-                ];
-
-                coins.forEach((coin, index) => {
-                    if (compteurs_coins[index] < 10) {
-                        liste_ennemis.push({
-                            x: coin.x - 25,
-                            y: coin.y - 25,
-                            largeur: 50,
-                            hauteur: 50,
-                            vitesse: 4, // Vitesse des ennemis remise à l'état normal (4)
-                            hp: 1000, 
-                            max_hp: 1000,
-                            degats: 100,
-                            invulnerable_timer: 0,
-                            coin_origine: index
-                        });
-                        compteurs_coins[index]++;
+                if (mode_tactile) {
+                    let dx = cible_x - joueur_x;
+                    let dy = cible_y - joueur_y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > joueur_vitesse) {
+                        joueur_x += (dx / distance) * joueur_vitesse;
+                        joueur_y += (dy / distance) * joueur_vitesse;
                     }
+                } else {
+                    if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
+                    if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
+                    if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
+                    if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
+                }
+                
+                if (joueur_x < 0) joueur_x = 0;
+                if (joueur_x > canvas.width - joueur_largeur) joueur_x = canvas.width - joueur_largeur;
+                if (joueur_y < 0) joueur_y = 0;
+                if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
+
+                let taille_coffre = 150;
+                let rect_coffre = {
+                    x: centre_x - taille_coffre / 2,
+                    y: centre_y - taille_coffre / 2,
+                    largeur: taille_coffre,
+                    hauteur: taille_coffre
+                };
+
+                let rect_joueur = {x: joueur_x, y: joueur_y, largeur: joueur_largeur, hauteur: joueur_hauteur};
+
+                for (let i = liste_ennemis.length - 1; i >= 0; i--) {
+                    let e = liste_ennemis[i];
+
+                    let cible_ennemi_x = centre_x - e.largeur / 2;
+                    let cible_ennemi_y = centre_y - e.hauteur / 2;
+
+                    let dx = cible_ennemi_x - e.x;
+                    let dy = cible_ennemi_y - e.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist > 5) {
+                        e.x += (dx / dist) * e.vitesse;
+                        e.y += (dy / dist) * e.vitesse;
+                    }
+
+                    if (e.invulnerable_timer > 0) e.invulnerable_timer--;
+
+                    if (collision(rect_joueur, e) && e.invulnerable_timer === 0) {
+                        e.hp -= joueur_degats;
+                        e.invulnerable_timer = 20; 
+                    }
+
+                    if (collision(rect_coffre, e)) {
+                        hp_coffre -= e.degats;
+                        liste_ennemis.splice(i, 1); 
+                        continue;
+                    }
+
+                    if (e.hp <= 0) {
+                        liste_ennemis.splice(i, 1);
+                    }
+                }
+
+                if (hp_coffre <= 0) {
+                    hp_coffre = 0;
+                    etat_jeu = "GAMEOVER";
+                }
+            }
+
+            dessiner();
+            requestAnimationFrame(update);
+        }
+
+        function dessiner() {
+            ctx.fillStyle = "#1e1e1e";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let centre_x = canvas.width / 2;
+            let centre_y = canvas.height / 2;
+            let taille_coffre = 150;
+            let largeur_chemin = 120;
+
+            ctx.strokeStyle = "#3c3c3c";
+            ctx.lineWidth = largeur_chemin;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.moveTo(canvas.width, 0);
+            ctx.lineTo(0, canvas.height);
+            ctx.stroke();
+
+            if (etat_jeu === "JEU" || etat_jeu === "GAMEOVER") {
+                liste_ennemis.forEach(e => {
+                    ctx.fillStyle = "#ff4d4d";
+                    ctx.fillRect(e.x, e.y, e.largeur, e.hauteur);
+
+                    ctx.fillStyle = "#000";
+                    ctx.fillRect(e.x, e.y - 12, e.largeur, 6);
+                    ctx.fillStyle = "#ff0000";
+                    let large_vie = (e.hp / e.max_hp) * e.largeur;
+                    ctx.fillRect(e.x, e.y - 12, large_vie > 0 ? large_vie : 0, 6);
                 });
             }
 
-            function collision(rect1, rect2) {
-                return rect1.x < rect2.x + rect2.largeur &&
-                       rect1.x + rect1.largeur > rect2.x &&
-                       rect1.y < rect2.y + rect2.hauteur &&
-                       rect1.y + rect1.hauteur > rect2.y;
-            }
+            ctx.fillStyle = "#ffff00";
+            ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
 
-            function update() {
-                let centre_x = canvas.width / 2;
-                let centre_y = canvas.height / 2;
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fillRect(centre_x - 100, centre_y - taille_coffre / 2 - 30, 200, 15);
+            ctx.fillStyle = "#00ff00";
+            ctx.fillRect(centre_x - 100, centre_y - taille_coffre / 2 - 30, (hp_coffre / max_hp_coffre) * 200, 15);
 
-                bouton_start.x = centre_x - bouton_start.largeur / 2;
-                bouton_start.y = centre_y - bouton_start.hauteur / 2;
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 14px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(hp_coffre + " / " + max_hp_coffre + " HP", centre_x, centre_y - taille_coffre / 2 - 35);
 
-                if (etat_jeu === "JEU") {
-                    let maintenant = Date.now();
-                    
-                    if (maintenant - dernier_spawn > 1000) {
-                        faireSpawnEnnemis();
-                        dernier_spawn = maintenant;
-                    }
+            ctx.fillStyle = "#00ff00";
+            ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
 
-                    if (mode_tactile) {
-                        let dx = cible_x - joueur_x;
-                        let dy = cible_y - joueur_y;
-                        let distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance > joueur_vitesse) {
-                            joueur_x += (dx / distance) * joueur_vitesse;
-                            joueur_y += (dy / distance) * joueur_vitesse;
-                        }
-                    } else {
-                        if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
-                        if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
-                        if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
-                        if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
-                    }
-                    
-                    if (joueur_x < 0) joueur_x = 0;
-                    if (joueur_x > canvas.width - joueur_largeur) joueur_x = canvas.width - joueur_largeur;
-                    if (joueur_y < 0) joueur_y = 0;
-                    if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
-
-                    let taille_coffre = 150;
-                    let rect_coffre = {
-                        x: centre_x - taille_coffre / 2,
-                        y: centre_y - taille_coffre / 2,
-                        largeur: taille_coffre,
-                        hauteur: taille_coffre
-                    };
-
-                    let rect_joueur = {x: joueur_x, y: joueur_y, largeur: joueur_largeur, hauteur: joueur_hauteur};
-
-                    for (let i = liste_ennemis.length - 1; i >= 0; i--) {
-                        let e = liste_ennemis[i];
-
-                        let cible_ennemi_x = centre_x - e.largeur / 2;
-                        let cible_ennemi_y = centre_y - e.hauteur / 2;
-
-                        let dx = cible_ennemi_x - e.x;
-                        let dy = cible_ennemi_y - e.y;
-                        let dist = Math.sqrt(dx * dx + dy * dy);
-
-                        if (dist > 5) {
-                            e.x += (dx / dist) * e.vitesse;
-                            e.y += (dy / dist) * e.vitesse;
-                        }
-
-                        if (e.invulnerable_timer > 0) e.invulnerable_timer--;
-
-                        if (collision(rect_joueur, e) && e.invulnerable_timer === 0) {
-                            e.hp -= joueur_degats;
-                            e.invulnerable_timer = 20; 
-                        }
-
-                        if (collision(rect_coffre, e)) {
-                            hp_coffre -= e.degats;
-                            liste_ennemis.splice(i, 1); 
-                            continue;
-                        }
-
-                        if (e.hp <= 0) {
-                            liste_ennemis.splice(i, 1);
-                        }
-                    }
-
-                    if (hp_coffre <= 0) {
-                        hp_coffre = 0;
-                        etat_jeu = "GAMEOVER";
-                    }
-                }
-
-                dessiner();
-                requestAnimationFrame(update);
-            }
-
-            function dessiner() {
-                ctx.fillStyle = "#1e1e1e";
+            if (etat_jeu === "MENU") {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                let centre_x = canvas.width / 2;
-                let centre_y = canvas.height / 2;
-                let taille_coffre = 150;
-                let largeur_chemin = 120;
-
-                ctx.strokeStyle = "#3c3c3c";
-                ctx.lineWidth = largeur_chemin;
-                ctx.lineCap = "round";
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(canvas.width, canvas.height);
-                ctx.moveTo(canvas.width, 0);
-                ctx.lineTo(0, canvas.height);
-                ctx.stroke();
-
-                if (etat_jeu === "JEU" || etat_jeu === "GAMEOVER") {
-                    liste_ennemis.forEach(e => {
-                        ctx.fillStyle = "#ff4d4d";
-                        ctx.fillRect(e.x, e.y, e.largeur, e.hauteur);
-
-                        ctx.fillStyle = "#000";
-                        ctx.fillRect(e.x, e.y - 12, e.largeur, 6);
-                        ctx.fillStyle = "#ff0000";
-                        let large_vie = (e.hp / e.max_hp) * e.largeur;
-                        ctx.fillRect(e.x, e.y - 12, large_vie > 0 ? large_vie : 0, 6);
-                    });
-                }
-
-                ctx.fillStyle = "#ffff00";
-                ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
-
-                ctx.fillStyle = "rgba(0,0,0,0.5)";
-                ctx.fillRect(centre_x - 100, centre_y - taille_coffre / 2 - 30, 200, 15);
                 ctx.fillStyle = "#00ff00";
-                ctx.fillRect(centre_x - 100, centre_y - taille_coffre / 2 - 30, (hp_coffre / max_hp_coffre) * 200, 15);
-
-                ctx.fillStyle = "#fff";
-                ctx.font = "bold 14px sans-serif";
+                ctx.fillRect(bouton_start.x, bouton_start.y, bouton_start.largeur, bouton_start.hauteur);
+                
+                ctx.fillStyle = "#000";
+                ctx.font = "bold 45px sans-serif";
                 ctx.textAlign = "center";
-                ctx.fillText(hp_coffre + " / " + max_hp_coffre + " HP", centre_x, centre_y - taille_coffre / 2 - 35);
-
-                ctx.fillStyle = "#00ff00";
-                ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
-
-                if (etat_jeu === "MENU") {
-                    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    ctx.fillStyle = "#00ff00";
-                    ctx.fillRect(bouton_start.x, bouton_start.y, bouton_start.largeur, bouton_start.hauteur);
-                    
-                    ctx.fillStyle = "#000";
-                    ctx.font = "bold 45px sans-serif";
-                    ctx.fillText("▶", centre_x + 3, centre_y + 13);
-                }
-
-                if (etat_jeu === "GAMEOVER") {
-                    ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.fillStyle = "#ff4d4d";
-                    ctx.font = "bold 60px sans-serif";
-                    ctx.textAlign = "center";
-                    ctx.fillText("LE COFFRE A ÉTÉ DETRUIT !", canvas.width / 2, canvas.height / 2);
-                    ctx.font = "30px sans-serif";
-                    ctx.fillStyle = "#fff";
-                    ctx.fillText("Rafraîchis la page pour rejouer", canvas.width / 2, canvas.height / 2 + 70);
-                }
+                ctx.fillText("▶", centre_x, centre_y + 15);
             }
 
-            update();
-        });
+            if (etat_jeu === "GAMEOVER") {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#ff4d4d";
+                ctx.font = "bold 60px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("LE COFFRE A ÉTÉ DETRUIT !", canvas.width / 2, canvas.height / 2);
+                ctx.font = "30px sans-serif";
+                ctx.fillStyle = "#fff";
+                ctx.fillText("Rafraîchis la page pour rejouer", canvas.width / 2, canvas.height / 2 + 70);
+            }
+        }
+
+        update();
     </script>
 </body>
 </html>
