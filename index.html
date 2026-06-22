@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v2.1</title>
+    <title>Défends le Coffre ! v2.2</title>
     <style>
         html, body {
             margin: 0;
@@ -12,6 +12,8 @@
             height: 100%;
             overflow: hidden;
             background-color: #111;
+            /* CRUCIAL : Interdit complètement au téléphone de scroller ou de rafraîchir la page au toucher */
+            overscroll-behavior: none; 
             touch-action: none; 
             display: flex;
             align-items: center;
@@ -115,7 +117,6 @@
         });
         window.addEventListener("keyup", (e) => touches[e.code] = false);
 
-        // Gestion propre et isolée du tactile
         function enregistrerPositionDoigt(clientX, clientY) {
             if (!jeu_actif) return;
             mode_tactile = true;
@@ -132,9 +133,8 @@
         });
         
         canvas.addEventListener("touchmove", (e) => {
-            e.preventDefault(); // Bloque le zoom ou scroll du téléphone
+            e.preventDefault(); 
             if(e.touches.length > 0) {
-                // Modifie uniquement la destination, sans toucher aux boucles du jeu
                 cible_x = e.touches[0].clientX - joueur_largeur / 2;
                 cible_y = e.touches[0].clientY - joueur_hauteur / 2;
                 mode_tactile = true;
@@ -204,7 +204,6 @@
                     dernier_spawn = maintenant;
                 }
 
-                // Déplacement joueur fluide
                 if (mode_tactile) {
                     let dx = cible_x - joueur_x;
                     let dy = cible_y - joueur_y;
@@ -237,7 +236,6 @@
 
                 let rect_joueur = {x: joueur_x, y: joueur_y, largeur: joueur_largeur, hauteur: joueur_hauteur};
 
-                // Les ennemis bougent ici de manière totalement indépendante du tactile
                 for (let i = liste_ennemis.length - 1; i >= 0; i--) {
                     let e = liste_ennemis[i];
 
