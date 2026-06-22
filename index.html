@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v1.7</title>
+    <title>Défends le Coffre ! v1.8</title>
     <style>
         html, body {
             margin: 0;
@@ -14,31 +14,38 @@
             background-color: #111;
             touch-action: none; 
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-family: sans-serif;
             user-select: none;
         }
-        .barre-outils {
+        
+        /* Bouton de démarrage spécial Mobile */
+        #ecranDeDemarrage {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 10;
-        }
-        .btn {
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            border: 2px solid #555;
-            padding: 6px 12px;
-            font-size: 13px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(17, 17, 17, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
             cursor: pointer;
-            border-radius: 5px;
-            font-weight: bold;
         }
+        .gros-bouton {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 20px 50px;
+            font-size: 40px;
+            font-weight: bold;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
         canvas {
-            width: 100vw;
-            height: 100vh;
             display: block;
             background-color: #1e1e1e;
         }
@@ -46,8 +53,8 @@
 </head>
 <body>
 
-    <div class="barre-outils">
-        <button class="btn" onclick="document.documentElement.requestFullscreen()">📺 Plein Écran</button>
+    <div id="ecranDeDemarrage" onclick="lancerLeJeu()">
+        <button class="gros-bouton">▶</button>
     </div>
 
     <canvas id="jeuCanvas"></canvas>
@@ -56,7 +63,6 @@
         const canvas = document.getElementById("jeuCanvas");
         const ctx = canvas.getContext("2d");
 
-        // --- VARIABLES DYNAMIQUES ---
         let taille_coffre = 100; 
         let joueur_largeur = 50;   
         let joueur_hauteur = 50;   
@@ -64,6 +70,7 @@
         let joueur_y = 0;
         let cible_x = 0;
         let cible_y = 0;
+        let jeu_actif = false;
 
         function redimensionner() {
             canvas.width = window.innerWidth;
@@ -74,7 +81,6 @@
             joueur_largeur = plus_petite_dimension * 0.1;
             joueur_hauteur = plus_petite_dimension * 0.1;
 
-            // Recentrage automatique
             joueur_x = canvas.width / 2 - joueur_largeur / 2;
             joueur_y = canvas.height / 2 - joueur_hauteur / 2 + (taille_coffre * 1.1);
             cible_x = joueur_x;
@@ -91,25 +97,17 @@
         // --- STATS DU JEU ---
         let hp_coffre = 10000;
         let max_hp_coffre = 10000;
-        let etat_jeu = "MENU"; 
+        let etat_jeu = "JEU"; 
 
-        // --- JOUEUR (Vitesse 8) ---
+        // --- JOUEUR ---
         let joueur_vitesse = 8; 
         let joueur_degats = 500;
         let mode_tactile = false;
 
-        // --- ENNEMIS (Vitesse 4) ---
+        // --- ENNEMIS ---
         let liste_ennemis = [];
         let dernier_spawn = 0;
         let compteurs_coins = [0, 0, 0, 0]; 
-
-        // --- BOUTON DE DÉBUT ▶ ---
-        let bouton_start = {
-            x: 0,
-            y: 0,
-            largeur: 140,
-            hauteur: 80
-        };
 
         let touches = {};
         window.addEventListener("keydown", (e) => {
@@ -119,20 +117,10 @@
         window.addEventListener("keyup", (e) => touches[e.code] = false);
 
         function gererAction(clientX, clientY) {
-            if (etat_jeu === "MENU") {
-                if (clientX >= bouton_start.x && clientX <= bouton_start.x + bouton_start.largeur &&
-                    clientY >= bouton_start.y && clientY <= bouton_start.y + bouton_start.hauteur) {
-                    etat_jeu = "JEU";
-                    dernier_spawn = Date.now();
-                }
-                return;
-            }
-
-            if (etat_jeu === "JEU") {
-                mode_tactile = true;
-                cible_x = clientX - joueur_largeur / 2;
-                cible_y = clientY - joueur_hauteur / 2;
-            }
+            if (!jeu_actif) return;
+            mode_tactile = true;
+            cible_x = clientX - joueur_largeur / 2;
+            cible_y = clientY - joueur_hauteur / 2;
         }
 
         canvas.addEventListener("mousedown", (e) => gererAction(e.clientX, e.clientY));
@@ -184,12 +172,27 @@
                    rect1.y + rect1.hauteur > rect2.y;
         }
 
+        function lancerLeJeu() {
+            // Masque l'écran de démarrage HTML
+            document.getElementById("ecranDeDemarrage").style.display = "none";
+            jeu_actif = true;
+            dernier_spawn = Date.now();
+            
+            // Tente de passer en plein écran automatique sur mobile
+            try {
+                document.documentElement.requestFullscreen();
+            } catch (e) {}
+
+            redimensionner();
+            // Démarre la boucle du jeu après le clic
+            update();
+        }
+
         function update() {
+            if (!jeu_actif) return;
+
             let centre_x = canvas.width / 2;
             let centre_y = canvas.height / 2;
-
-            bouton_start.x = centre_x - bouton_start.largeur / 2;
-            bouton_start.y = centre_y - bouton_start.hauteur / 2;
 
             if (etat_jeu === "JEU") {
                 let maintenant = Date.now();
@@ -289,18 +292,16 @@
             ctx.lineTo(0, canvas.height);
             ctx.stroke();
 
-            if (etat_jeu === "JEU" || etat_jeu === "GAMEOVER") {
-                liste_ennemis.forEach(e => {
-                    ctx.fillStyle = "#ff4d4d";
-                    ctx.fillRect(e.x, e.y, e.largeur, e.hauteur);
+            liste_ennemis.forEach(e => {
+                ctx.fillStyle = "#ff4d4d";
+                ctx.fillRect(e.x, e.y, e.largeur, e.hauteur);
 
-                    ctx.fillStyle = "#000";
-                    ctx.fillRect(e.x, e.y - 12, e.largeur, 6);
-                    ctx.fillStyle = "#ff0000";
-                    let large_vie = (e.hp / e.max_hp) * e.largeur;
-                    ctx.fillRect(e.x, e.y - 12, large_vie > 0 ? large_vie : 0, 6);
-                });
-            }
+                ctx.fillStyle = "#000";
+                ctx.fillRect(e.x, e.y - 12, e.largeur, 6);
+                ctx.fillStyle = "#ff0000";
+                let large_vie = (e.hp / e.max_hp) * e.largeur;
+                ctx.fillRect(e.x, e.y - 12, large_vie > 0 ? large_vie : 0, 6);
+            });
 
             ctx.fillStyle = "#ffff00";
             ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
@@ -319,19 +320,6 @@
             ctx.fillStyle = "#00ff00";
             ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
 
-            if (etat_jeu === "MENU") {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                ctx.fillStyle = "#00ff00";
-                ctx.fillRect(bouton_start.x, bouton_start.y, bouton_start.largeur, bouton_start.hauteur);
-                
-                ctx.fillStyle = "#000";
-                ctx.font = "bold 45px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText("▶", centre_x, centre_y + 15);
-            }
-
             if (etat_jeu === "GAMEOVER") {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -345,7 +333,9 @@
             }
         }
 
-        update();
+        // On dessine juste une fois le fond noir au cas où avant le démarrage
+        ctx.fillStyle = "#111";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
     </script>
 </body>
 </html>
