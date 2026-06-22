@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v2.3</title>
+    <title>Défends le Coffre ! v2.4</title>
     <style>
         html, body {
             margin: 0;
@@ -72,8 +72,10 @@
         let cible_y = 0;
         let jeu_actif = false;
 
-        // Variables pour bloquer les FPS et stabiliser la vitesse
-        let dernierTemps = performance.now();
+        // Variables de temps fixes (60 FPS constants forcés pour la physique)
+        let tempsPrecedent = performance.now();
+        const tickRate = 1000 / 60; // 16.66ms par calcul de physique
+        let accumulateur = 0;
 
         function redimensionner() {
             canvas.width = window.innerWidth;
@@ -102,12 +104,12 @@
         let max_hp_coffre = 10000;
         let etat_jeu = "JEU"; 
 
-        // --- JOUEUR (Ajusté pour Delta Time) ---
-        let joueur_vitesse = 450; 
+        // --- JOUEUR (Vitesse par tick fixe) ---
+        let joueur_vitesse = 8; 
         let joueur_degats = 500;
         let mode_tactile = false;
 
-        // --- ENNEMIS (Ajusté pour Delta Time) ---
+        // --- ENNEMIS (Vitesse par tick fixe) ---
         let liste_ennemis = [];
         let dernier_spawn = 0;
         let compteurs_coins = [0, 0, 0, 0]; 
@@ -160,7 +162,7 @@
                         y: coin.y - (e_taille / 2),
                         largeur: e_taille,
                         hauteur: e_taille,
-                        vitesse: 220, // Vitesse constante par seconde
+                        vitesse: 4, // 4 pixels max par tick fixe
                         hp: 1000, 
                         max_hp: 1000,
                         degats: 100,
@@ -183,24 +185,39 @@
             document.getElementById("ecranDeDemarrage").style.display = "none";
             jeu_actif = true;
             dernier_spawn = Date.now();
-            dernierTemps = performance.now();
+            tempsPrecedent = performance.now();
             
             try {
                 document.documentElement.requestFullscreen();
             } catch (e) {}
 
             redimensionner();
-            requestAnimationFrame(update);
+            requestAnimationFrame(bouclePrincipale);
         }
 
-        function update(tempsActuel) {
+        // Boucle principale qui sépare complètement l'affichage et les calculs physiques
+        function bouclePrincipale(tempsActuel) {
             if (!jeu_actif) return;
 
-            // Calcul du temps écoulé précis (dt) pour bloquer les accélérations de calcul
-            let dt = (tempsActuel - dernierTemps) / 1000;
-            if (dt > 0.1) dt = 0.1; // Sécurité anti-saccade
-            dernierTemps = tempsActuel;
+            let tempsEcoule = tempsActuel - tempsPrecedent;
+            tempsPrecedent = tempsActuel;
 
+            // Sécurité si le téléphone freeze au démarrage
+            if (tempsEcoule > 250) tempsEcoule = 250; 
+
+            accumulateur += tempsEcoule;
+
+            // On exécute la physique uniquement par tranches fixes de 16.66ms
+            while (accumulateur >= tickRate) {
+                updatePhysique();
+                accumulateur -= tickRate;
+            }
+
+            dessiner();
+            requestAnimationFrame(bouclePrincipale);
+        }
+
+        function updatePhysique() {
             let centre_x = canvas.width / 2;
             let centre_y = canvas.height / 2;
 
@@ -212,26 +229,24 @@
                     dernier_spawn = maintenant;
                 }
 
-                // Déplacement joueur basé sur le temps réel
+                // Déplacement joueur cloisonné
                 if (mode_tactile) {
                     let dx = cible_x - joueur_x;
                     let dy = cible_y - joueur_y;
                     let distance = Math.sqrt(dx * dx + dy * dy);
-                    let pas = joueur_vitesse * dt;
 
-                    if (distance > pas) {
-                        joueur_x += (dx / distance) * pas;
-                        joueur_y += (dy / distance) * pas;
+                    if (distance > joueur_vitesse) {
+                        joueur_x += (dx / distance) * joueur_vitesse;
+                        joueur_y += (dy / distance) * joueur_vitesse;
                     } else {
                         joueur_x = cible_x;
                         joueur_y = cible_y;
                     }
                 } else {
-                    let pasClavier = joueur_vitesse * dt;
-                    if (touches["ArrowLeft"])  joueur_x -= pasClavier;
-                    if (touches["ArrowRight"]) joueur_x += pasClavier;
-                    if (touches["ArrowUp"])    joueur_y -= pasClavier;
-                    if (touches["ArrowDown"])  joueur_y += pasClavier;
+                    if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
+                    if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
+                    if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
+                    if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
                 }
                 
                 if (joueur_x < 0) joueur_x = 0;
@@ -257,20 +272,19 @@
                     let dx = cible_ennemi_x - e.x;
                     let dy = cible_ennemi_y - e.y;
                     let dist = Math.sqrt(dx * dx + dy * dy);
-                    let pasEnnemi = e.vitesse * dt;
 
-                    // Les ennemis avancent de manière fluide et fixe selon le temps réel
-                    if (dist > pasEnnemi) {
-                        e.x += (dx / dist) * pasEnnemi;
-                        e.y += (dy / dist) * pasEnnemi;
+                    // ICI : Déplacement mathématiquement bloqué à e.vitesse maximum par tick
+                    if (dist > e.vitesse) {
+                        e.x += (dx / dist) * e.vitesse;
+                        e.y += (dy / dist) * e.vitesse;
                     } else {
                         e.x = cible_ennemi_x;
                         e.y = cible_ennemi_y;
                     }
 
-                    if (e.invulnerable_timer > 0) e.invulnerable_timer -= dt * 60;
+                    if (e.invulnerable_timer > 0) e.invulnerable_timer--;
 
-                    if (collision(rect_joueur, e) && e.invulnerable_timer <= 0) {
+                    if (collision(rect_joueur, e) && e.invulnerable_timer === 0) {
                         e.hp -= joueur_degats;
                         e.invulnerable_timer = 20; 
                     }
@@ -291,9 +305,6 @@
                     etat_jeu = "GAMEOVER";
                 }
             }
-
-            dessiner();
-            requestAnimationFrame(update);
         }
 
         function dessiner() {
