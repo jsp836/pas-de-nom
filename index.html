@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v2.2</title>
+    <title>Défends le Coffre ! v2.3</title>
     <style>
         html, body {
             margin: 0;
@@ -12,7 +12,6 @@
             height: 100%;
             overflow: hidden;
             background-color: #111;
-            /* CRUCIAL : Interdit complètement au téléphone de scroller ou de rafraîchir la page au toucher */
             overscroll-behavior: none; 
             touch-action: none; 
             display: flex;
@@ -73,6 +72,9 @@
         let cible_y = 0;
         let jeu_actif = false;
 
+        // Variables pour bloquer les FPS et stabiliser la vitesse
+        let dernierTemps = performance.now();
+
         function redimensionner() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -100,12 +102,12 @@
         let max_hp_coffre = 10000;
         let etat_jeu = "JEU"; 
 
-        // --- JOUEUR ---
-        let joueur_vitesse = 8; 
+        // --- JOUEUR (Ajusté pour Delta Time) ---
+        let joueur_vitesse = 450; 
         let joueur_degats = 500;
         let mode_tactile = false;
 
-        // --- ENNEMIS ---
+        // --- ENNEMIS (Ajusté pour Delta Time) ---
         let liste_ennemis = [];
         let dernier_spawn = 0;
         let compteurs_coins = [0, 0, 0, 0]; 
@@ -158,7 +160,7 @@
                         y: coin.y - (e_taille / 2),
                         largeur: e_taille,
                         hauteur: e_taille,
-                        vitesse: 4, 
+                        vitesse: 220, // Vitesse constante par seconde
                         hp: 1000, 
                         max_hp: 1000,
                         degats: 100,
@@ -181,17 +183,23 @@
             document.getElementById("ecranDeDemarrage").style.display = "none";
             jeu_actif = true;
             dernier_spawn = Date.now();
+            dernierTemps = performance.now();
             
             try {
                 document.documentElement.requestFullscreen();
             } catch (e) {}
 
             redimensionner();
-            update();
+            requestAnimationFrame(update);
         }
 
-        function update() {
+        function update(tempsActuel) {
             if (!jeu_actif) return;
+
+            // Calcul du temps écoulé précis (dt) pour bloquer les accélérations de calcul
+            let dt = (tempsActuel - dernierTemps) / 1000;
+            if (dt > 0.1) dt = 0.1; // Sécurité anti-saccade
+            dernierTemps = tempsActuel;
 
             let centre_x = canvas.width / 2;
             let centre_y = canvas.height / 2;
@@ -204,22 +212,26 @@
                     dernier_spawn = maintenant;
                 }
 
+                // Déplacement joueur basé sur le temps réel
                 if (mode_tactile) {
                     let dx = cible_x - joueur_x;
                     let dy = cible_y - joueur_y;
                     let distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance > joueur_vitesse) {
-                        joueur_x += (dx / distance) * joueur_vitesse;
-                        joueur_y += (dy / distance) * joueur_vitesse;
+                    let pas = joueur_vitesse * dt;
+
+                    if (distance > pas) {
+                        joueur_x += (dx / distance) * pas;
+                        joueur_y += (dy / distance) * pas;
                     } else {
                         joueur_x = cible_x;
                         joueur_y = cible_y;
                     }
                 } else {
-                    if (touches["ArrowLeft"])  joueur_x -= joueur_vitesse;
-                    if (touches["ArrowRight"]) joueur_x += joueur_vitesse;
-                    if (touches["ArrowUp"])    joueur_y -= joueur_vitesse;
-                    if (touches["ArrowDown"])  joueur_y += joueur_vitesse;
+                    let pasClavier = joueur_vitesse * dt;
+                    if (touches["ArrowLeft"])  joueur_x -= pasClavier;
+                    if (touches["ArrowRight"]) joueur_x += pasClavier;
+                    if (touches["ArrowUp"])    joueur_y -= pasClavier;
+                    if (touches["ArrowDown"])  joueur_y += pasClavier;
                 }
                 
                 if (joueur_x < 0) joueur_x = 0;
@@ -245,18 +257,20 @@
                     let dx = cible_ennemi_x - e.x;
                     let dy = cible_ennemi_y - e.y;
                     let dist = Math.sqrt(dx * dx + dy * dy);
+                    let pasEnnemi = e.vitesse * dt;
 
-                    if (dist > e.vitesse) {
-                        e.x += (dx / dist) * e.vitesse;
-                        e.y += (dy / dist) * e.vitesse;
+                    // Les ennemis avancent de manière fluide et fixe selon le temps réel
+                    if (dist > pasEnnemi) {
+                        e.x += (dx / dist) * pasEnnemi;
+                        e.y += (dy / dist) * pasEnnemi;
                     } else {
                         e.x = cible_ennemi_x;
                         e.y = cible_ennemi_y;
                     }
 
-                    if (e.invulnerable_timer > 0) e.invulnerable_timer--;
+                    if (e.invulnerable_timer > 0) e.invulnerable_timer -= dt * 60;
 
-                    if (collision(rect_joueur, e) && e.invulnerable_timer === 0) {
+                    if (collision(rect_joueur, e) && e.invulnerable_timer <= 0) {
                         e.hp -= joueur_degats;
                         e.invulnerable_timer = 20; 
                     }
