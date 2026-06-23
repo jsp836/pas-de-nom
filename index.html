@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v5.0</title>
+    <title>Défends le Coffre ! v5.1</title>
     <style>
         html, body {
             margin: 0;
@@ -55,9 +55,9 @@
         // --- STATS DES PERSONNAGES & ÉTAT D'ACHAT ---
         let perso_choisi = "chevalier";
         const types_personnages = {
-            chevalier: { nom: "CHEVALIER", couleur: "#00ff00", vit_base: 8, deg_base: 500, desc: "Moyen", prix: 0, debloque: true },
-            ninja: { nom: "NINJA", couleur: "#00bfff", vit_base: 12, deg_base: 300, desc: "Rapide mais faible", prix: 100, debloque: false },
-            tank: { nom: "TANK", couleur: "#9400d3", vit_base: 5, deg_base: 1000, desc: "fort mais lent", prix: 200, debloque: false }
+            chevalier: { nom: "CHEVALIER", couleur: "#00ff00", vit_base: 8, deg_base: 500, desc: "Équilibré", prix: 0, debloque: true },
+            ninja: { nom: "NINJA", couleur: "#00bfff", vit_base: 12, deg_base: 300, desc: "Ultra Rapide", prix: 100, debloque: false },
+            tank: { nom: "TANK", couleur: "#9400d3", vit_base: 5, deg_base: 1000, desc: "Lourd & Puissant", prix: 200, debloque: false }
         };
 
         // --- STATS DE LA PARTIE EN COURS ---
@@ -202,7 +202,6 @@
             }
         }
         window.addEventListener('resize', redimensionner);
-        redimensionner();
 
         function demarrerLaVraiePartie() {
             hp_coffre = 10000;
@@ -455,6 +454,21 @@
                 ctx.fillStyle = "#00ff00"; ctx.fillRect(centre_x - 120, centre_y + 60, 240, 50);
                 ctx.fillStyle = "#000"; ctx.font = "bold 18px sans-serif"; ctx.fillText("RETOUR AU MENU ↻", centre_x, centre_y + 92);
             }
+        }
+
+        function bouclePrincipale(tempsActuel) {
+            let tempsEcoule = tempsActuel - tempsPrecedent;
+            if (tempsEcoule > 250) tempsEcoule = 250; 
+            tempsPrecedent = tempsActuel;
+            accumulateur += tempsEcoule;
+
+            while (accumulateur >= tickRate) {
+                updatePhysique();
+                accumulateur -= tickRate;
+            }
+
+            dessiner();
+            requestAnimationFrame(bouclePrincipale);
         }
 
         // Démarrage initial sur le menu
