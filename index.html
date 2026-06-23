@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v3.0</title>
+    <title>Défends le Coffre ! v3.5</title>
     <style>
         html, body {
             margin: 0;
@@ -78,7 +78,7 @@
         const tickRate = 1000 / 60; 
         let accumulateur = 0;
 
-        // --- BOUTIQUE MUTABLE (Sauvegardée entre les morts) ---
+        // --- BOUTIQUE MUTABLE ---
         let or_total = 0;
         let niveau_degats = 1;
         let niveau_vitesse = 1;
@@ -92,6 +92,16 @@
         let vague = 1;
         let temps_vague_timer = 0;
 
+        // --- SYSTÈME D'XP EN PARTIE ---
+        let joueur_niveau = 1;
+        let joueur_xp = 0;
+        let xp_necessaire = 100;
+        let message_level_up = "";
+        let level_up_timer = 0;
+
+        // --- EFFETS VISUELS ---
+        let popups_degats = [];
+
         // --- JOUEUR STABILISÉ ---
         let joueur_vitesse_base = 8; 
         let joueur_degats_base = 500;
@@ -100,7 +110,7 @@
         // --- ENNEMIS ---
         let liste_ennemis = [];
         let dernier_spawn = 0;
-        let intervalle_spawn = 1000; // En millisecondes, diminue au fil des vagues
+        let intervalle_spawn = 1200; 
 
         let touches = {};
         window.addEventListener("keydown", (e) => {
@@ -109,19 +119,16 @@
         });
         window.addEventListener("keyup", (e) => touches[e.code] = false);
 
-        // Détection des clics sur les boutons de la boutique ou Rejouer (Fin de partie)
         function verifierClicsMenus(x, y) {
             if (etat_jeu !== "GAMEOVER") return false;
 
             let centre_x = canvas.width / 2;
             let centre_y = canvas.height / 2;
 
-            // Zone Bouton Rejouer
             if (x >= centre_x - 100 && x <= centre_x + 100 && y >= centre_y + 110 && y <= centre_y + 160) {
                 recommencerPartie();
                 return true;
             }
-            // Zone Amélioration Dégâts (Coût: niveau * 10)
             let cout_degats = niveau_degats * 10;
             if (x >= centre_x - 160 && x <= centre_x - 10 && y >= centre_y + 20 && y <= centre_y + 70) {
                 if (or_total >= cout_degats) {
@@ -130,7 +137,6 @@
                 }
                 return true;
             }
-            // Zone Amélioration Vitesse (Coût: niveau * 15)
             let cout_vit = niveau_vitesse * 15;
             if (x >= centre_x + 10 && x <= centre_x + 160 && y >= centre_y + 20 && y <= centre_y + 70) {
                 if (or_total >= cout_vit) {
@@ -154,13 +160,9 @@
         }
 
         canvas.addEventListener("mousedown", (e) => enregistrerPositionDoigt(e.clientX, e.clientY));
-        
         canvas.addEventListener("touchstart", (e) => {
-            if(e.touches.length > 0) {
-                enregistrerPositionDoigt(e.touches[0].clientX, e.touches[0].clientY);
-            }
+            if(e.touches.length > 0) enregistrerPositionDoigt(e.touches[0].clientX, e.touches[0].clientY);
         });
-        
         canvas.addEventListener("touchmove", (e) => {
             e.preventDefault(); 
             if(etat_jeu === "JEU" && e.touches.length > 0) {
@@ -173,7 +175,6 @@
         function redimensionner() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            
             let plus_petite_dimension = Math.min(canvas.width, canvas.height);
             taille_coffre = plus_petite_dimension * 0.22; 
             joueur_largeur = plus_petite_dimension * 0.1;
@@ -186,7 +187,6 @@
                 cible_y = joueur_y;
             }
         }
-        
         window.addEventListener('resize', redimensionner);
         redimensionner();
 
@@ -195,26 +195,42 @@
                 {x: 0, y: 0}, {x: canvas.width, y: 0},              
                 {x: 0, y: canvas.height}, {x: canvas.width, y: canvas.height}   
             ];
+            let e_taille_normal = Math.min(canvas.width, canvas.height) * 0.08;
 
-            let e_taille = Math.min(canvas.width, canvas.height) * 0.08;
-            
-            // Les stats des ennemis augmentent avec les vagues
-            let vie_ennemi = 1000 + (vague - 1) * 350;
-            let vitesse_ennemi = 4 + (vague - 1) * 0.4;
-            if (vitesse_ennemi > 7.5) vitesse_ennemi = 7.5; // Vitesse max raisonnable
+            coins.forEach((coin) => {
+                // Chance d'apparition du Kamikaze (Orange) à partir de la vague 2
+                let chanceKamikaze = vague >= 2 ? 0.35 : 0;
+                let estKamikaze = Math.random() < chanceKamikaze;
 
-            coins.forEach((coin, index) => {
-                liste_ennemis.push({
-                    x: coin.x - (e_taille / 2),
-                    y: coin.y - (e_taille / 2),
-                    largeur: e_taille,
-                    hauteur: e_taille,
-                    vitesse: vitesse_ennemi, 
-                    hp: vie_ennemi, 
-                    max_hp: vie_ennemi,
-                    degats: 100 + (vague - 1) * 20,
-                    invulnerable_timer: 0
-                });
+                if (estKamikaze) {
+                    liste_ennemis.push({
+                        type: "kamikaze",
+                        x: coin.x - ((e_taille_normal * 0.7) / 2),
+                        y: coin.y - ((e_taille_normal * 0.7) / 2),
+                        largeur: e_taille_normal * 0.7, // Plus petit
+                        hauteur: e_taille_normal * 0.7,
+                        vitesse: (4 + (vague - 1) * 0.4) * 1.6, // Beaucoup plus rapide !
+                        hp: (1000 + (vague - 1) * 350) * 0.4,    // Moins de vie
+                        max_hp: (1000 + (vague - 1) * 350) * 0.4,
+                        degats: (100 + (vague - 1) * 20) * 1.5,  // Fait très mal au coffre
+                        couleur: "#ff9900",
+                        invulnerable_timer: 0
+                    });
+                } else {
+                    liste_ennemis.push({
+                        type: "normal",
+                        x: coin.x - (e_taille_normal / 2),
+                        y: coin.y - (e_taille_normal / 2),
+                        largeur: e_taille_normal,
+                        hauteur: e_taille_normal,
+                        vitesse: Math.min(7.5, 4 + (vague - 1) * 0.4), 
+                        hp: 1000 + (vague - 1) * 350, 
+                        max_hp: 1000 + (vague - 1) * 350,
+                        degats: 100 + (vague - 1) * 20,
+                        couleur: "#ff4d4d",
+                        invulnerable_timer: 0
+                    });
+                }
             });
         }
 
@@ -239,8 +255,12 @@
             or_gagne = 0;
             vague = 1;
             temps_vague_timer = 0;
+            joueur_niveau = 1;
+            joueur_xp = 0;
+            xp_necessaire = 100;
             intervalle_spawn = 1200;
             liste_ennemis = [];
+            popups_degats = [];
             dernier_spawn = Date.now();
             etat_jeu = "JEU";
             mode_tactile = false;
@@ -264,6 +284,26 @@
             requestAnimationFrame(bouclePrincipale);
         }
 
+        function ajouterXP(montant) {
+            joueur_xp += montant;
+            if (joueur_xp >= xp_necessaire) {
+                joueur_xp -= xp_necessaire;
+                joueur_niveau++;
+                xp_necessaire = Math.floor(xp_necessaire * 1.4);
+                
+                // Récompense aléatoire de montée de niveau
+                let r = Math.random();
+                if (r < 0.5) {
+                    hp_coffre = Math.min(max_hp_coffre, hp_coffre + 1500);
+                    message_level_up = "COFFRE SOIGNÉ ! (+1500 HP)";
+                } else {
+                    score += 150;
+                    message_level_up = "BONUS SCORE ! (+150 PTS)";
+                }
+                level_up_timer = 90; // Affichage pendant 1.5 seconde
+            }
+        }
+
         function updatePhysique() {
             let centre_x = canvas.width / 2;
             let centre_y = canvas.height / 2;
@@ -271,30 +311,35 @@
             if (etat_jeu === "JEU") {
                 let maintenant = Date.now();
                 
-                // Gestion du temps et des vagues (Chaque vague dure 20 secondes)
                 temps_vague_timer += tickRate;
                 if (temps_vague_timer >= 20000) {
                     vague++;
                     temps_vague_timer = 0;
-                    intervalle_spawn = Math.max(600, 1200 - (vague * 80)); // Spawn plus rapide
+                    intervalle_spawn = Math.max(500, 1200 - (vague * 90));
                 }
 
-                // Apparition ennemis
+                if (level_up_timer > 0) level_up_timer--;
+
+                // Update popups dégâts
+                for (let i = popups_degats.length - 1; i >= 0; i--) {
+                    popups_degats[i].y -= 1;
+                    popups_degats[i].vie--;
+                    if (popups_degats[i].vie <= 0) popups_degats.splice(i, 1);
+                }
+
                 if (maintenant - dernier_spawn > intervalle_spawn) {
                     faireSpawnEnnemis();
                     dernier_spawn = maintenant;
                 }
 
-                // Calcul stats joueur selon boutique
                 let vitesse_actuelle = joueur_vitesse_base + (niveau_vitesse - 1) * 0.8;
                 let degats_actuels = joueur_degats_base + (niveau_degats - 1) * 250;
 
-                // Déplacement joueur
+                // Mouvement joueur
                 if (mode_tactile) {
                     let dx = cible_x - joueur_x;
                     let dy = cible_y - joueur_y;
                     let distance = Math.sqrt(dx * dx + dy * dy);
-
                     if (distance > vitesse_actuelle) {
                         joueur_x += (dx / distance) * vitesse_actuelle;
                         joueur_y += (dy / distance) * vitesse_actuelle;
@@ -314,11 +359,8 @@
                 if (joueur_y < 0) joueur_y = 0;
                 if (joueur_y > canvas.height - joueur_hauteur) joueur_y = canvas.height - joueur_hauteur;
 
-                let rect_coffre = {
-                    x: centre_x - taille_coffre / 2, y: centre_y - taille_coffre / 2,
-                    largeur: taille_coffre, hauteur: taille_coffre
-                };
-                let rect_joueur = {x: joueur_x, y: joueur_y, largeur: joueur_largeur, hauteur: joueur_hauteur};
+                let rect_coffre = { x: centre_x - taille_coffre / 2, y: centre_y - taille_coffre / 2, largeur: taille_coffre, hauteur: taille_coffre };
+                let rect_joueur = { x: joueur_x, y: joueur_y, largeur: joueur_largeur, hauteur: joueur_hauteur };
 
                 for (let i = liste_ennemis.length - 1; i >= 0; i--) {
                     let e = liste_ennemis[i];
@@ -332,39 +374,42 @@
                     if (dist > e.vitesse) {
                         e.x += (dx / dist) * e.vitesse;
                         e.y += (dy / dist) * e.vitesse;
-                    } else {
-                        e.x = cible_ennemi_x;
-                        e.y = cible_ennemi_y;
-                    }
+                    } else { e.x = cible_ennemi_x; e.y = cible_ennemi_y; }
 
                     if (e.invulnerable_timer > 0) e.invulnerable_timer--;
 
-                    // Collision joueur / ennemi
+                    // Combat Joueur / Ennemi
                     if (collision(rect_joueur, e) && e.invulnerable_timer === 0) {
                         e.hp -= degats_actuels;
                         e.invulnerable_timer = 15; 
+                        
+                        // Création du texte flottant
+                        popups_degats.push({
+                            x: e.x + e.largeur / 2 + (Math.random() * 20 - 10),
+                            y: e.y,
+                            texte: degats_actuels,
+                            vie: 30
+                        });
                     }
 
-                    // Collision coffre / ennemi
+                    // Collision Coffre
                     if (collision(rect_coffre, e)) {
                         hp_coffre -= e.degats;
                         liste_ennemis.splice(i, 1); 
                         continue;
                     }
 
-                    // Mort de l'ennemi -> Gain de score et d'or
+                    // Mort Ennemi
                     if (e.hp <= 0) {
                         liste_ennemis.splice(i, 1);
                         score += 10;
                         or_gagne += 1;
                         or_total += 1;
+                        ajouterXP(e.type === "kamikaze" ? 35 : 20); // Le kamikaze donne plus d'XP
                     }
                 }
 
-                if (hp_coffre <= 0) {
-                    hp_coffre = 0;
-                    etat_jeu = "GAMEOVER";
-                }
+                if (hp_coffre <= 0) { hp_coffre = 0; etat_jeu = "GAMEOVER"; }
             }
         }
 
@@ -375,7 +420,7 @@
             let centre_x = canvas.width / 2;
             let centre_y = canvas.height / 2;
 
-            // Dessin des chemins gris
+            // Chemins
             let largeur_chemin = Math.min(canvas.width, canvas.height) * 0.18;
             ctx.strokeStyle = "#3c3c3c";
             ctx.lineWidth = largeur_chemin;
@@ -385,9 +430,9 @@
             ctx.moveTo(canvas.width, 0); ctx.lineTo(0, canvas.height);
             ctx.stroke();
 
-            // Dessin ennemis
+            // Ennemis
             liste_ennemis.forEach(e => {
-                ctx.fillStyle = "#ff4d4d";
+                ctx.fillStyle = e.couleur;
                 ctx.fillRect(e.x, e.y, e.largeur, e.hauteur);
                 ctx.fillStyle = "#000";
                 ctx.fillRect(e.x, e.y - 12, e.largeur, 6);
@@ -396,31 +441,54 @@
                 ctx.fillRect(e.x, e.y - 12, large_vie > 0 ? large_vie : 0, 6);
             });
 
-            // Dessin coffre
+            // Coffre
             ctx.fillStyle = "#ffff00";
             ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
 
-            // Barre de vie coffre
+            // Vie Coffre
             let largeur_barre = Math.min(canvas.width * 0.5, 200);
             ctx.fillStyle = "rgba(0,0,0,0.5)";
             ctx.fillRect(centre_x - largeur_barre / 2, centre_y - taille_coffre / 2 - 22, largeur_barre, 10);
             ctx.fillStyle = "#00ff00";
             ctx.fillRect(centre_x - largeur_barre / 2, centre_y - taille_coffre / 2 - 22, (hp_coffre / max_hp_coffre) * largeur_barre, 10);
 
-            // Interface HUD en haut de l'écran
+            // Textes flottants de dégâts
+            popups_degats.forEach(p => {
+                ctx.fillStyle = "#ff3333";
+                ctx.font = "bold 14px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("-" + p.texte, p.x, p.y);
+            });
+
+            // Barre d'XP tout en haut de l'écran
+            ctx.fillStyle = "#333";
+            ctx.fillRect(0, 0, canvas.width, 6);
+            ctx.fillStyle = "#00bfff";
+            ctx.fillRect(0, 0, (joueur_xp / xp_necessaire) * canvas.width, 6);
+
+            // HUD
             ctx.fillStyle = "#fff";
-            ctx.font = "bold 16px sans-serif";
+            ctx.font = "bold 15px sans-serif";
             ctx.textAlign = "left";
             ctx.fillText("SCORE: " + score, 20, 30);
-            ctx.fillText("OR: " + or_total + "⛁", 20, 55);
+            ctx.fillText("OR: " + or_total + "⛁", 20, 52);
+            ctx.fillText("NIV. " + joueur_niveau, 20, 74);
             ctx.textAlign = "right";
             ctx.fillText("VAGUE: " + vague, canvas.width - 20, 30);
 
-            // Dessin joueur
+            // Message Level Up temporaire
+            if (level_up_timer > 0) {
+                ctx.fillStyle = "#00bfff";
+                ctx.font = "bold 20px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("LEVEL UP ! " + message_level_up, centre_x, 40);
+            }
+
+            // Joueur
             ctx.fillStyle = "#00ff00";
             ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
 
-            // ÉCRAN GAME OVER + SHOP
+            // GAME OVER
             if (etat_jeu === "GAMEOVER") {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -434,9 +502,8 @@
                 ctx.font = "18px sans-serif";
                 ctx.fillText("Score atteint : " + score, centre_x, centre_y - 80);
                 ctx.fillStyle = "#ffff00";
-                ctx.fillText("Or récolté cette partie : +" + or_gagne + " ⛁ (Total : " + or_total + "⛁)", centre_x, centre_y - 50);
+                ctx.fillText("Or récolté : +" + or_gagne + " ⛁ (Total : " + or_total + "⛁)", centre_x, centre_y - 50);
 
-                // --- BOUTIQUE DESSIN ---
                 ctx.fillStyle = "#fff";
                 ctx.font = "bold 20px sans-serif";
                 ctx.fillText("--- MAGASIN ---", centre_x, centre_y - 10);
@@ -444,7 +511,6 @@
                 let cout_degats = niveau_degats * 10;
                 let cout_vit = niveau_vitesse * 15;
 
-                // Case Bouton Dégâts
                 ctx.fillStyle = or_total >= cout_degats ? "#0055ff" : "#333";
                 ctx.fillRect(centre_x - 160, centre_y + 20, 150, 50);
                 ctx.fillStyle = "#fff";
@@ -453,7 +519,6 @@
                 ctx.fillStyle = "#ffff00";
                 ctx.fillText("Coût: " + cout_degats + "⛁", centre_x - 85, centre_y + 60);
 
-                // Case Bouton Vitesse
                 ctx.fillStyle = or_total >= cout_vit ? "#0055ff" : "#333";
                 ctx.fillRect(centre_x + 10, centre_y + 20, 150, 50);
                 ctx.fillStyle = "#fff";
@@ -461,7 +526,6 @@
                 ctx.fillStyle = "#ffff00";
                 ctx.fillText("Coût: " + cout_vit + "⛁", centre_x + 85, centre_y + 60);
 
-                // Gros bouton REJOUER
                 ctx.fillStyle = "#00ff00";
                 ctx.fillRect(centre_x - 100, centre_y + 110, 200, 50);
                 ctx.fillStyle = "#000";
