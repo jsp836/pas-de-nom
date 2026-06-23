@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v6.0</title>
+    <title>Défends le Coffre ! v6.2</title>
     <style>
         html, body {
             margin: 0;
@@ -16,7 +16,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
         }
         canvas {
@@ -45,10 +45,13 @@
         const tickRate = 1000 / 60; 
         let accumulateur = 0;
 
+        // --- NAVIGATION STYLE CLASH ROYALE ---
+        let onglet_actif = "COMBAT"; // "COMBAT" ou "BOUTIQUE"
+
         // --- MONNAIE GLOBALE ---
         let or_total = 0;
 
-        // --- STATS INDÉPENDANTES DES PERSONNAGES & ÉTAT D'ACHAT ---
+        // --- STATS INDÉPENDANTES DES PERSONNAGES ---
         let perso_choisi = "chevalier";
         const types_personnages = {
             chevalier: { 
@@ -65,7 +68,7 @@
             }
         };
 
-        // --- FONCTIONS DE SAUVEGARDE AUTOMATIQUE ---
+        // --- SAUVEGARDE AUTOMATIQUE ---
         function sauvegarderDonnees() {
             const donnees = {
                 or_total: or_total,
@@ -99,7 +102,7 @@
                     types_personnages.tank.niv_degats = d.tank_deg ?? 1;
                     types_personnages.tank.niv_vitesse = d.tank_vit ?? 1;
                 } catch (e) {
-                    console.error("Erreur de chargement de la sauvegarde", e);
+                    console.error(e);
                 }
             }
         }
@@ -134,77 +137,83 @@
         function verifierClicsMenus(x, y) {
             let centre_x = canvas.width / 2;
             let centre_y = canvas.height / 2;
+            let bas_y = canvas.height;
 
             if (etat_jeu === "MENU_PRINCIPAL") {
-                // Bouton JOUER
-                if (x >= centre_x - 100 && x <= centre_x + 100 && y >= centre_y - 140 && y <= centre_y - 90) {
-                    demarrerLaVraiePartie();
+                // --- CLICS SUR LES ONGLETS DU BAS (Toujours actifs sur le menu) ---
+                if (y >= bas_y - 60 && y <= bas_y) {
+                    if (x >= 0 && x < canvas.width / 2) {
+                        onglet_actif = "BOUTIQUE";
+                    } else {
+                        onglet_actif = "COMBAT";
+                    }
                     return true;
                 }
 
-                // Clics améliorations sur le personnage actuellement CHOISI
-                let heros = types_personnages[perso_choisi];
-                let cout_degats = heros.niv_degats * 10;
-                let cout_vit = heros.niv_vitesse * 15;
+                // --- CONTENU ONGLET COMBAT ---
+                if (onglet_actif === "COMBAT") {
+                    // Bouton JOUER
+                    if (x >= centre_x - 110 && x <= centre_x + 110 && y >= centre_y - 40 && y <= centre_y + 30) {
+                        demarrerLaVraiePartie();
+                        return true;
+                    }
+                }
 
-                // +Dégâts
-                if (x >= centre_x - 160 && x <= centre_x - 10 && y >= centre_y - 40 && y <= centre_y + 10) {
-                    if (or_total >= cout_degats) { 
-                        or_total -= cout_degats; 
-                        heros.niv_degats++; 
+                // --- CONTENU ONGLET BOUTIQUE ---
+                if (onglet_actif === "BOUTIQUE") {
+                    // Sélection / Achat des Héros (Ligne du haut de la boutique)
+                    // Chevalier
+                    if (x >= centre_x - 145 && x <= centre_x - 55 && y >= centre_y - 100 && y <= centre_y - 20) {
+                        perso_choisi = "chevalier"; 
                         sauvegarderDonnees();
+                        return true;
                     }
-                    return true;
-                }
-                // +Vitesse
-                if (x >= centre_x + 10 && x <= centre_x + 160 && y >= centre_y - 40 && y <= centre_y + 10) {
-                    if (or_total >= cout_vit) { 
-                        or_total -= cout_vit; 
-                        heros.niv_vitesse++; 
+                    // Ninja
+                    if (x >= centre_x - 45 && x <= centre_x + 45 && y >= centre_y - 100 && y <= centre_y - 20) {
+                        let n = types_personnages.ninja;
+                        if (n.debloque) {
+                            perso_choisi = "ninja";
+                        } else if (or_total >= n.prix) { 
+                            or_total -= n.prix; n.debloque = true; perso_choisi = "ninja"; 
+                        }
                         sauvegarderDonnees();
+                        return true;
                     }
-                    return true;
-                }
+                    // Tank
+                    if (x >= centre_x + 55 && x <= centre_x + 145 && y >= centre_y - 100 && y <= centre_y - 20) {
+                        let t = types_personnages.tank;
+                        if (t.debloque) {
+                            perso_choisi = "tank";
+                        } else if (or_total >= t.prix) { 
+                            or_total -= t.prix; t.debloque = true; perso_choisi = "tank"; 
+                        }
+                        sauvegarderDonnees();
+                        return true;
+                    }
 
-                // Boutique / Sélection Persos
-                // Chevalier
-                if (x >= centre_x - 160 && x <= centre_x - 70 && y >= centre_y + 70 && y <= centre_y + 150) {
-                    perso_choisi = "chevalier"; 
-                    sauvegarderDonnees();
-                    return true;
-                }
-                // Ninja
-                if (x >= centre_x - 45 && x <= centre_x + 45 && y >= centre_y + 70 && y <= centre_y + 150) {
-                    let n = types_personnages.ninja;
-                    if (n.debloque) {
-                        perso_choisi = "ninja";
-                    } else if (or_total >= n.prix) { 
-                        or_total -= n.prix; 
-                        n.debloque = true; 
-                        perso_choisi = "ninja"; 
+                    // Boutons d'Upgrades du héros sélectionné
+                    let heros = types_personnages[perso_choisi];
+                    let c_deg = heros.niv_degats * 10;
+                    let c_vit = heros.niv_vitesse * 15;
+
+                    // +Dégâts
+                    if (x >= centre_x - 145 && x <= centre_x - 5 && y >= centre_y + 40 && y <= centre_y + 95) {
+                        if (or_total >= c_deg) { or_total -= c_deg; heros.niv_degats++; sauvegarderDonnees(); }
+                        return true;
                     }
-                    sauvegarderDonnees();
-                    return true;
-                }
-                // Tank
-                if (x >= centre_x + 70 && x <= centre_x + 160 && y >= centre_y + 70 && y <= centre_y + 150) {
-                    let t = types_personnages.tank;
-                    if (t.debloque) {
-                        perso_choisi = "tank";
-                    } else if (or_total >= t.prix) { 
-                        or_total -= t.prix; 
-                        t.debloque = true; 
-                        perso_choisi = "tank"; 
+                    // +Vitesse
+                    if (x >= centre_x + 5 && x <= centre_x + 145 && y >= centre_y + 40 && y <= centre_y + 95) {
+                        if (or_total >= c_vit) { or_total -= c_vit; heros.niv_vitesse++; sauvegarderDonnees(); }
+                        return true;
                     }
-                    sauvegarderDonnees();
-                    return true;
                 }
             }
 
             if (etat_jeu === "GAMEOVER") {
                 if (x >= centre_x - 120 && x <= centre_x + 120 && y >= centre_y + 60 && y <= centre_y + 110) {
                     etat_jeu = "MENU_PRINCIPAL";
-                    sauvegarderDonnees(); // Sauvegarde finale des gains après la partie
+                    onglet_actif = "COMBAT";
+                    sauvegarderDonnees();
                     return true;
                 }
             }
@@ -364,73 +373,114 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             let centre_x = canvas.width / 2;
             let centre_y = canvas.height / 2;
+            let bas_y = canvas.height;
 
             if (etat_jeu === "MENU_PRINCIPAL") {
-                ctx.fillStyle = "rgba(15, 15, 15, 0.95)";
+                ctx.fillStyle = "rgba(15, 15, 22, 1)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                ctx.fillStyle = "#ffff00"; ctx.font = "bold 24px sans-serif"; ctx.textAlign = "center";
-                ctx.fillText("DÉFENDS LE COFFRE !", centre_x, centre_y - 200);
-                ctx.fillStyle = "#fff"; ctx.font = "bold 20px sans-serif";
-                ctx.fillText("TON OR : " + or_total + " ⛁", centre_x, centre_y - 165);
+                // --- HEADER COMMUN COMPTEUR D'OR ---
+                ctx.fillStyle = "#222535"; ctx.fillRect(centre_x - 110, 25, 220, 40);
+                ctx.strokeStyle = "#ffff00"; ctx.lineWidth = 2; ctx.strokeRect(centre_x - 110, 25, 220, 40);
+                ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText("MON OR : " + or_total + " ⛁", centre_x, 51);
 
-                ctx.fillStyle = "#00ff00"; ctx.fillRect(centre_x - 100, centre_y - 140, 200, 50);
-                ctx.fillStyle = "#000"; ctx.font = "bold 20px sans-serif"; ctx.fillText("JOUER ▶", centre_x, centre_y - 108);
+                // ============================================
+                // OGELET ACTIF : COMBAT (Page d'accueil)
+                // ============================================
+                if (onglet_actif === "COMBAT") {
+                    ctx.fillStyle = "#ffff00"; ctx.font = "bold 24px sans-serif";
+                    ctx.fillText("🛡️ DEFENDS LE COFFRE", centre_x, centre_y - 120);
 
-                // Récupération des stats du héros sélectionné pour afficher ses améliorations uniques
-                let heros = types_personnages[perso_choisi];
-                ctx.fillStyle = heros.couleur; ctx.font = "bold 15px sans-serif"; 
-                ctx.fillText("--- UPGRADES : " + heros.nom + " ---", centre_x, centre_y - 55);
+                    // Gros Bouton Jouer
+                    ctx.fillStyle = "#ff4747"; ctx.fillRect(centre_x - 110, centre_y - 40, 220, 70);
+                    ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.strokeRect(centre_x - 110, centre_y - 40, 220, 70);
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 24px sans-serif";
+                    ctx.fillText("COMBAT ▶", centre_x, centre_y + 4);
+
+                    // Info Perso Actuel
+                    let h = types_personnages[perso_choisi];
+                    ctx.fillStyle = "#aaa"; ctx.font = "14px sans-serif";
+                    ctx.fillText("Héros équipé : ", centre_x, centre_y + 80);
+                    ctx.fillStyle = h.couleur; ctx.font = "bold 16px sans-serif";
+                    ctx.fillText(h.nom, centre_x, centre_y + 105);
+                }
+
+                // ============================================
+                // ONGLET ACTIF : BOUTIQUE (Cartes et Upgrades)
+                // ============================================
+                if (onglet_actif === "BOUTIQUE") {
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif";
+                    ctx.fillText("DECK DE COMBAT", centre_x, centre_y - 130);
+
+                    // --- Rangée des Héros ---
+                    // Chevalier
+                    let c = types_personnages.chevalier; let estChoisiC = (perso_choisi === "chevalier");
+                    ctx.lineWidth = estChoisiC ? 3 : 1; ctx.strokeStyle = estChoisiC ? "#00ff00" : "#444";
+                    ctx.fillStyle = estChoisiC ? "#1a331a" : "#222";
+                    ctx.fillRect(centre_x - 145, centre_y - 100, 90, 80); ctx.strokeRect(centre_x - 145, centre_y - 100, 90, 80);
+                    ctx.fillStyle = "#00ff00"; ctx.font = "bold 12px sans-serif"; ctx.fillText("CHEVALIER", centre_x - 100, centre_y - 70);
+                    ctx.fillStyle = "#aaa"; ctx.font = "10px sans-serif"; ctx.fillText("ÉQUIPÉ", centre_x - 100, centre_y - 40);
+
+                    // Ninja
+                    let n = types_personnages.ninja; let estChoisiN = (perso_choisi === "ninja");
+                    ctx.lineWidth = estChoisiN ? 3 : 1; ctx.strokeStyle = estChoisiN ? "#00bfff" : "#444";
+                    ctx.fillStyle = n.debloque ? (estChoisiN ? "#142d3d" : "#222") : (or_total >= n.prix ? "#152535" : "#111");
+                    ctx.fillRect(centre_x - 45, centre_y - 100, 90, 80); ctx.strokeRect(centre_x - 45, centre_y - 100, 90, 80);
+                    ctx.fillStyle = "#00bfff"; ctx.font = "bold 12px sans-serif"; ctx.fillText("NINJA", centre_x, centre_y - 70);
+                    ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText(n.debloque ? (estChoisiN ? "ÉQUIPÉ" : "DISPO") : n.prix + " ⛁", centre_x, centre_y - 40);
+
+                    // Tank
+                    let t = types_personnages.tank; let estChoisiT = (perso_choisi === "tank");
+                    ctx.lineWidth = estChoisiT ? 3 : 1; ctx.strokeStyle = estChoisiT ? "#9400d3" : "#444";
+                    ctx.fillStyle = t.debloque ? (estChoisiT ? "#2d143d" : "#222") : (or_total >= t.prix ? "#2d1535" : "#111");
+                    ctx.fillRect(centre_x + 55, centre_y - 100, 90, 80); ctx.strokeRect(centre_x + 55, centre_y - 100, 90, 80);
+                    ctx.fillStyle = "#9400d3"; ctx.font = "bold 12px sans-serif"; ctx.fillText("TANK", centre_x + 100, centre_y - 70);
+                    ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText(t.debloque ? (estChoisiT ? "ÉQUIPÉ" : "DISPO") : t.prix + " ⛁", centre_x + 100, centre_y - 40);
+
+                    // --- Améliorations Dynamiques du Héros Sélectionné ---
+                    let heros = types_personnages[perso_choisi];
+                    ctx.fillStyle = heros.couleur; ctx.font = "bold 13px sans-serif"; 
+                    ctx.fillText("NIVEAUX DE " + heros.nom, centre_x, centre_y + 15);
+                    
+                    let c_deg = heros.niv_degats * 10; let c_vit = heros.niv_vitesse * 15;
+
+                    // Case Dégâts
+                    ctx.fillStyle = or_total >= c_deg ? "#2646c4" : "#333"; ctx.fillRect(centre_x - 145, centre_y + 40, 140, 55);
+                    ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(centre_x - 145, centre_y + 40, 140, 55);
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚔️ DÉGÂTS (Niv." + heros.niv_degats + ")", centre_x - 75, centre_y + 62);
+                    ctx.fillStyle = "#ffff00"; ctx.fillText(c_deg + " ⛁", centre_x - 75, centre_y + 82);
+
+                    // Case Vitesse
+                    ctx.fillStyle = or_total >= c_vit ? "#2646c4" : "#333"; ctx.fillRect(centre_x + 5, centre_y + 40, 140, 55);
+                    ctx.strokeRect(centre_x + 5, centre_y + 40, 140, 55);
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚡ VITESSE (Niv." + heros.niv_vitesse + ")", centre_x + 75, centre_y + 62);
+                    ctx.fillStyle = "#ffff00"; ctx.fillText(c_vit + " ⛁", centre_x + 75, centre_y + 82);
+                }
+
+                // ============================================
+                // BARRE D'ONGLETS FIXE (Tout en bas)
+                // ============================================
+                ctx.fillStyle = "#1b1c26"; ctx.fillRect(0, bas_y - 60, canvas.width, 60);
+                ctx.strokeStyle = "#2d2f45"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, bas_y - 60); ctx.lineTo(canvas.width, bas_y - 60); ctx.stroke();
                 
-                let c_deg = heros.niv_degats * 10; let c_vit = heros.niv_vitesse * 15;
+                // Séparateur central
+                ctx.beginPath(); ctx.moveTo(canvas.width / 2, bas_y - 60); ctx.lineTo(canvas.width / 2, bas_y); ctx.stroke();
 
-                ctx.fillStyle = or_total >= c_deg ? "#0055ff" : "#333"; ctx.fillRect(centre_x - 160, centre_y - 40, 150, 50);
-                ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("+DÉGÂTS (Niv." + heros.niv_degats + ")", centre_x - 85, centre_y - 23);
-                ctx.fillStyle = "#ffff00"; ctx.fillText("Coût: " + c_deg + "⛁", centre_x - 85, centre_y - 7);
+                // Onglet 1 : Boutique (Gauche)
+                if (onglet_actif === "BOUTIQUE") { ctx.fillStyle = "#2c2e43"; ctx.fillRect(0, bas_y - 59, canvas.width / 2 - 1, 58); }
+                ctx.fillStyle = onglet_actif === "BOUTIQUE" ? "#fff" : "#777"; ctx.font = "bold 14px sans-serif";
+                ctx.fillText("🛍️ BOUTIQUE", canvas.width * 0.25, bas_y - 24);
 
-                ctx.fillStyle = or_total >= c_vit ? "#0055ff" : "#333"; ctx.fillRect(centre_x + 10, centre_y - 40, 150, 50);
-                ctx.fillStyle = "#fff"; ctx.fillText("+VITESSE (Niv." + heros.niv_vitesse + ")", centre_x + 85, centre_y - 23);
-                ctx.fillStyle = "#ffff00"; ctx.fillText("Coût: " + c_vit + "⛁", centre_x + 85, centre_y - 7);
+                // Onglet 2 : Combat (Droite)
+                if (onglet_actif === "COMBAT") { ctx.fillStyle = "#2c2e43"; ctx.fillRect(canvas.width / 2 + 1, bas_y - 59, canvas.width / 2, 58); }
+                ctx.fillStyle = onglet_actif === "COMBAT" ? "#fff" : "#777"; ctx.font = "bold 14px sans-serif";
+                ctx.fillText("⚔️ COMBAT", canvas.width * 0.75, bas_y - 24);
 
-                ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif"; ctx.fillText("--- BOUTIQUE HÉROS ---", centre_x, centre_y + 45);
-
-                // Chevalier
-                let c = types_personnages.chevalier;
-                ctx.lineWidth = (perso_choisi === "chevalier") ? 4 : 1; ctx.strokeStyle = (perso_choisi === "chevalier") ? "#00ff00" : "#555";
-                ctx.fillStyle = "#222"; ctx.fillRect(centre_x - 160, centre_y + 70, 90, 80); ctx.strokeRect(centre_x - 160, centre_y + 70, 90, 80);
-                ctx.fillStyle = "#00ff00"; ctx.font = "bold 11px sans-serif"; ctx.fillText("CHEVALIER", centre_x - 115, centre_y + 92);
-                ctx.fillStyle = "#aaa"; ctx.font = "9px sans-serif"; ctx.fillText("Dég: N."+c.niv_degats, centre_x - 115, it = centre_y + 115);
-                ctx.fillText("Vit: N."+c.niv_vitesse, centre_x - 115, centre_y + 130);
-
-                // Ninja
-                let n = types_personnages.ninja;
-                ctx.lineWidth = (perso_choisi === "ninja") ? 4 : 1; ctx.strokeStyle = (perso_choisi === "ninja") ? "#00bfff" : "#555";
-                ctx.fillStyle = n.debloque ? "#222" : (or_total >= n.prix ? "#1a334d" : "#111");
-                ctx.fillRect(centre_x - 45, centre_y + 70, 90, 80); ctx.strokeRect(centre_x - 45, centre_y + 70, 90, 80);
-                ctx.fillStyle = "#00bfff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("NINJA", centre_x, centre_y + 92);
-                if(n.debloque){
-                    ctx.fillStyle = "#aaa"; ctx.font = "9px sans-serif"; ctx.fillText("Dég: N."+n.niv_degats, centre_x, centre_y + 115);
-                    ctx.fillText("Vit: N."+n.niv_vitesse, centre_x, centre_y + 130);
-                } else {
-                    ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText("100 ⛁", centre_x, centre_y + 120);
-                }
-
-                // Tank
-                let t = types_personnages.tank;
-                ctx.lineWidth = (perso_choisi === "tank") ? 4 : 1; ctx.strokeStyle = (perso_choisi === "tank") ? "#9400d3" : "#555";
-                ctx.fillStyle = t.debloque ? "#222" : (or_total >= t.prix ? "#3d1a4d" : "#111");
-                ctx.fillRect(centre_x + 70, centre_y + 70, 90, 80); ctx.strokeRect(centre_x + 70, centre_y + 70, 90, 80);
-                ctx.fillStyle = "#9400d3"; ctx.font = "bold 11px sans-serif"; ctx.fillText("TANK", centre_x + 115, centre_y + 92);
-                if(t.debloque){
-                    ctx.fillStyle = "#aaa"; ctx.font = "9px sans-serif"; ctx.fillText("Dég: N."+t.niv_degats, centre_x + 115, centre_y + 115);
-                    ctx.fillText("Vit: N."+t.niv_vitesse, centre_x + 115, centre_y + 130);
-                } else {
-                    ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText("200 ⛁", centre_x + 115, centre_y + 120);
-                }
                 return;
             }
 
-            // JEU ACTIF
+            // JEU ACTIF (Reste inchangé)
             let lChemin = Math.min(canvas.width, canvas.height) * 0.18;
             ctx.strokeStyle = "#3c3c3c"; ctx.lineWidth = lChemin; ctx.lineCap = "round";
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, canvas.height); ctx.moveTo(canvas.width, 0); ctx.lineTo(0, canvas.height); ctx.stroke();
@@ -486,7 +536,7 @@
         }
 
         window.addEventListener('load', () => {
-            chargerDonnees(); // Charge la sauvegarde avant de lancer le jeu
+            chargerDonnees();
             redimensionner();
             tempsPrecedent = performance.now();
             requestAnimationFrame(bouclePrincipale);
