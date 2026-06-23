@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v5.2</title>
+    <title>Défends le Coffre ! v6.0</title>
     <style>
         html, body {
             margin: 0;
@@ -45,18 +45,64 @@
         const tickRate = 1000 / 60; 
         let accumulateur = 0;
 
-        // --- SAUVEGARDE GLOBALE ---
+        // --- MONNAIE GLOBALE ---
         let or_total = 0;
-        let niveau_degats = 1;
-        let niveau_vitesse = 1;
 
-        // --- PERSONNAGES ---
+        // --- STATS INDÉPENDANTES DES PERSONNAGES & ÉTAT D'ACHAT ---
         let perso_choisi = "chevalier";
         const types_personnages = {
-            chevalier: { nom: "CHEVALIER", couleur: "#00ff00", vit_base: 8, deg_base: 500, prix: 0, debloque: true },
-            ninja: { nom: "NINJA", couleur: "#00bfff", vit_base: 12, deg_base: 300, prix: 100, debloque: false },
-            tank: { nom: "TANK", couleur: "#9400d3", vit_base: 5, deg_base: 1000, prix: 200, debloque: false }
+            chevalier: { 
+                nom: "CHEVALIER", couleur: "#00ff00", prix: 0, debloque: true,
+                vit_base: 8, deg_base: 500, niv_degats: 1, niv_vitesse: 1 
+            },
+            ninja: { 
+                nom: "NINJA", couleur: "#00bfff", prix: 100, debloque: false,
+                vit_base: 12, deg_base: 300, niv_degats: 1, niv_vitesse: 1 
+            },
+            tank: { 
+                nom: "TANK", couleur: "#9400d3", prix: 200, debloque: false,
+                vit_base: 5, deg_base: 1000, niv_degats: 1, niv_vitesse: 1 
+            }
         };
+
+        // --- FONCTIONS DE SAUVEGARDE AUTOMATIQUE ---
+        function sauvegarderDonnees() {
+            const donnees = {
+                or_total: or_total,
+                perso_choisi: perso_choisi,
+                ninja_debloque: types_personnages.ninja.debloque,
+                tank_debloque: types_personnages.tank.debloque,
+                chevalier_deg: types_personnages.chevalier.niv_degats,
+                chevalier_vit: types_personnages.chevalier.niv_vitesse,
+                ninja_deg: types_personnages.ninja.niv_degats,
+                ninja_vit: types_personnages.ninja.niv_vitesse,
+                tank_deg: types_personnages.tank.niv_degats,
+                tank_vit: types_personnages.tank.niv_vitesse
+            };
+            localStorage.setItem("defends_le_coffre_sauvegarde", JSON.stringify(donnees));
+        }
+
+        function chargerDonnees() {
+            const sauvegarde = localStorage.getItem("defends_le_coffre_sauvegarde");
+            if (sauvegarde) {
+                try {
+                    const d = JSON.parse(sauvegarde);
+                    or_total = d.or_total ?? 0;
+                    perso_choisi = d.perso_choisi ?? "chevalier";
+                    types_personnages.ninja.debloque = d.ninja_debloque ?? false;
+                    types_personnages.tank.debloque = d.tank_debloque ?? false;
+                    
+                    types_personnages.chevalier.niv_degats = d.chevalier_deg ?? 1;
+                    types_personnages.chevalier.niv_vitesse = d.chevalier_vit ?? 1;
+                    types_personnages.ninja.niv_degats = d.ninja_deg ?? 1;
+                    types_personnages.ninja.niv_vitesse = d.ninja_vit ?? 1;
+                    types_personnages.tank.niv_degats = d.tank_deg ?? 1;
+                    types_personnages.tank.niv_vitesse = d.tank_vit ?? 1;
+                } catch (e) {
+                    console.error("Erreur de chargement de la sauvegarde", e);
+                }
+            }
+        }
 
         // --- STATS EN PARTIE ---
         let hp_coffre = 10000;
@@ -96,34 +142,61 @@
                     return true;
                 }
 
-                let cout_degats = niveau_degats * 10;
-                let cout_vit = niveau_vitesse * 15;
+                // Clics améliorations sur le personnage actuellement CHOISI
+                let heros = types_personnages[perso_choisi];
+                let cout_degats = heros.niv_degats * 10;
+                let cout_vit = heros.niv_vitesse * 15;
 
                 // +Dégâts
                 if (x >= centre_x - 160 && x <= centre_x - 10 && y >= centre_y - 40 && y <= centre_y + 10) {
-                    if (or_total >= cout_degats) { or_total -= cout_degats; niveau_degats++; }
+                    if (or_total >= cout_degats) { 
+                        or_total -= cout_degats; 
+                        heros.niv_degats++; 
+                        sauvegarderDonnees();
+                    }
                     return true;
                 }
                 // +Vitesse
                 if (x >= centre_x + 10 && x <= centre_x + 160 && y >= centre_y - 40 && y <= centre_y + 10) {
-                    if (or_total >= cout_vit) { or_total -= cout_vit; niveau_vitesse++; }
+                    if (or_total >= cout_vit) { 
+                        or_total -= cout_vit; 
+                        heros.niv_vitesse++; 
+                        sauvegarderDonnees();
+                    }
                     return true;
                 }
 
-                // Boutique Persos
+                // Boutique / Sélection Persos
+                // Chevalier
                 if (x >= centre_x - 160 && x <= centre_x - 70 && y >= centre_y + 70 && y <= centre_y + 150) {
-                    perso_choisi = "chevalier"; return true;
-                }
-                if (x >= centre_x - 45 && x <= centre_x + 45 && y >= centre_y + 70 && y <= centre_y + 150) {
-                    let n = types_personnages.ninja;
-                    if (n.debloque) perso_choisi = "ninja";
-                    else if (or_total >= n.prix) { or_total -= n.prix; n.debloque = true; perso_choisi = "ninja"; }
+                    perso_choisi = "chevalier"; 
+                    sauvegarderDonnees();
                     return true;
                 }
+                // Ninja
+                if (x >= centre_x - 45 && x <= centre_x + 45 && y >= centre_y + 70 && y <= centre_y + 150) {
+                    let n = types_personnages.ninja;
+                    if (n.debloque) {
+                        perso_choisi = "ninja";
+                    } else if (or_total >= n.prix) { 
+                        or_total -= n.prix; 
+                        n.debloque = true; 
+                        perso_choisi = "ninja"; 
+                    }
+                    sauvegarderDonnees();
+                    return true;
+                }
+                // Tank
                 if (x >= centre_x + 70 && x <= centre_x + 160 && y >= centre_y + 70 && y <= centre_y + 150) {
                     let t = types_personnages.tank;
-                    if (t.debloque) perso_choisi = "tank";
-                    else if (or_total >= t.prix) { or_total -= t.prix; t.debloque = true; perso_choisi = "tank"; }
+                    if (t.debloque) {
+                        perso_choisi = "tank";
+                    } else if (or_total >= t.prix) { 
+                        or_total -= t.prix; 
+                        t.debloque = true; 
+                        perso_choisi = "tank"; 
+                    }
+                    sauvegarderDonnees();
                     return true;
                 }
             }
@@ -131,6 +204,7 @@
             if (etat_jeu === "GAMEOVER") {
                 if (x >= centre_x - 120 && x <= centre_x + 120 && y >= centre_y + 60 && y <= centre_y + 110) {
                     etat_jeu = "MENU_PRINCIPAL";
+                    sauvegarderDonnees(); // Sauvegarde finale des gains après la partie
                     return true;
                 }
             }
@@ -240,8 +314,8 @@
                 if (maintenant - dernier_spawn > intervalle_spawn) { faireSpawnEnnemis(); dernier_spawn = maintenant; }
 
                 let p = types_personnages[perso_choisi];
-                let vit = p.vit_base + (niveau_vitesse - 1) * 0.8;
-                let deg = p.deg_base + (niveau_degats - 1) * 250;
+                let vit = p.vit_base + (p.niv_vitesse - 1) * 0.8;
+                let deg = p.deg_base + (p.niv_degats - 1) * 250;
 
                 if (mode_tactile) {
                     let dx = cible_x - joueur_x; let dy = cible_y - joueur_y;
@@ -303,40 +377,56 @@
                 ctx.fillStyle = "#00ff00"; ctx.fillRect(centre_x - 100, centre_y - 140, 200, 50);
                 ctx.fillStyle = "#000"; ctx.font = "bold 20px sans-serif"; ctx.fillText("JOUER ▶", centre_x, centre_y - 108);
 
-                ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif"; ctx.fillText("--- AMÉLIORATIONS ---", centre_x, centre_y - 55);
-                let c_deg = niveau_degats * 10; let c_vit = niveau_vitesse * 15;
+                // Récupération des stats du héros sélectionné pour afficher ses améliorations uniques
+                let heros = types_personnages[perso_choisi];
+                ctx.fillStyle = heros.couleur; ctx.font = "bold 15px sans-serif"; 
+                ctx.fillText("--- UPGRADES : " + heros.nom + " ---", centre_x, centre_y - 55);
+                
+                let c_deg = heros.niv_degats * 10; let c_vit = heros.niv_vitesse * 15;
 
                 ctx.fillStyle = or_total >= c_deg ? "#0055ff" : "#333"; ctx.fillRect(centre_x - 160, centre_y - 40, 150, 50);
-                ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("+DÉGÂTS (Niv." + niveau_degats + ")", centre_x - 85, centre_y - 23);
+                ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("+DÉGÂTS (Niv." + heros.niv_degats + ")", centre_x - 85, centre_y - 23);
                 ctx.fillStyle = "#ffff00"; ctx.fillText("Coût: " + c_deg + "⛁", centre_x - 85, centre_y - 7);
 
                 ctx.fillStyle = or_total >= c_vit ? "#0055ff" : "#333"; ctx.fillRect(centre_x + 10, centre_y - 40, 150, 50);
-                ctx.fillStyle = "#fff"; ctx.fillText("+VITESSE (Niv." + niveau_vitesse + ")", centre_x + 85, centre_y - 23);
+                ctx.fillStyle = "#fff"; ctx.fillText("+VITESSE (Niv." + heros.niv_vitesse + ")", centre_x + 85, centre_y - 23);
                 ctx.fillStyle = "#ffff00"; ctx.fillText("Coût: " + c_vit + "⛁", centre_x + 85, centre_y - 7);
 
                 ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif"; ctx.fillText("--- BOUTIQUE HÉROS ---", centre_x, centre_y + 45);
 
                 // Chevalier
+                let c = types_personnages.chevalier;
                 ctx.lineWidth = (perso_choisi === "chevalier") ? 4 : 1; ctx.strokeStyle = (perso_choisi === "chevalier") ? "#00ff00" : "#555";
                 ctx.fillStyle = "#222"; ctx.fillRect(centre_x - 160, centre_y + 70, 90, 80); ctx.strokeRect(centre_x - 160, centre_y + 70, 90, 80);
-                ctx.fillStyle = "#00ff00"; ctx.font = "bold 11px sans-serif"; ctx.fillText("CHEVALIER", centre_x - 115, centre_y + 95);
-                ctx.fillStyle = "#aaa"; ctx.font = "9px sans-serif"; ctx.fillText("DISPO", centre_x - 115, centre_y + 125);
+                ctx.fillStyle = "#00ff00"; ctx.font = "bold 11px sans-serif"; ctx.fillText("CHEVALIER", centre_x - 115, centre_y + 92);
+                ctx.fillStyle = "#aaa"; ctx.font = "9px sans-serif"; ctx.fillText("Dég: N."+c.niv_degats, centre_x - 115, it = centre_y + 115);
+                ctx.fillText("Vit: N."+c.niv_vitesse, centre_x - 115, centre_y + 130);
 
                 // Ninja
                 let n = types_personnages.ninja;
                 ctx.lineWidth = (perso_choisi === "ninja") ? 4 : 1; ctx.strokeStyle = (perso_choisi === "ninja") ? "#00bfff" : "#555";
                 ctx.fillStyle = n.debloque ? "#222" : (or_total >= n.prix ? "#1a334d" : "#111");
                 ctx.fillRect(centre_x - 45, centre_y + 70, 90, 80); ctx.strokeRect(centre_x - 45, centre_y + 70, 90, 80);
-                ctx.fillStyle = "#00bfff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("NINJA", centre_x, centre_y + 95);
-                ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText(n.debloque ? "DISPO" : "100 ⛁", centre_x, centre_y + 125);
+                ctx.fillStyle = "#00bfff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("NINJA", centre_x, centre_y + 92);
+                if(n.debloque){
+                    ctx.fillStyle = "#aaa"; ctx.font = "9px sans-serif"; ctx.fillText("Dég: N."+n.niv_degats, centre_x, centre_y + 115);
+                    ctx.fillText("Vit: N."+n.niv_vitesse, centre_x, centre_y + 130);
+                } else {
+                    ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText("100 ⛁", centre_x, centre_y + 120);
+                }
 
                 // Tank
                 let t = types_personnages.tank;
                 ctx.lineWidth = (perso_choisi === "tank") ? 4 : 1; ctx.strokeStyle = (perso_choisi === "tank") ? "#9400d3" : "#555";
                 ctx.fillStyle = t.debloque ? "#222" : (or_total >= t.prix ? "#3d1a4d" : "#111");
                 ctx.fillRect(centre_x + 70, centre_y + 70, 90, 80); ctx.strokeRect(centre_x + 70, centre_y + 70, 90, 80);
-                ctx.fillStyle = "#9400d3"; ctx.font = "bold 11px sans-serif"; ctx.fillText("TANK", centre_x + 115, centre_y + 95);
-                ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText(t.debloque ? "DISPO" : "200 ⛁", centre_x + 115, centre_y + 125);
+                ctx.fillStyle = "#9400d3"; ctx.font = "bold 11px sans-serif"; ctx.fillText("TANK", centre_x + 115, centre_y + 92);
+                if(t.debloque){
+                    ctx.fillStyle = "#aaa"; ctx.font = "9px sans-serif"; ctx.fillText("Dég: N."+t.niv_degats, centre_x + 115, centre_y + 115);
+                    ctx.fillText("Vit: N."+t.niv_vitesse, centre_x + 115, centre_y + 130);
+                } else {
+                    ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText("200 ⛁", centre_x + 115, centre_y + 120);
+                }
                 return;
             }
 
@@ -396,6 +486,7 @@
         }
 
         window.addEventListener('load', () => {
+            chargerDonnees(); // Charge la sauvegarde avant de lancer le jeu
             redimensionner();
             tempsPrecedent = performance.now();
             requestAnimationFrame(bouclePrincipale);
