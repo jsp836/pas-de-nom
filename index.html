@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v6.2</title>
+    <title>Défends le Coffre ! v7.0</title>
     <style>
         html, body {
             margin: 0;
@@ -46,7 +46,7 @@
         let accumulateur = 0;
 
         // --- NAVIGATION STYLE CLASH ROYALE ---
-        let onglet_actif = "COMBAT"; // "COMBAT" ou "BOUTIQUE"
+        let onglet_actif = "COMBAT"; // "COMBAT" ou "AMELIORATIONS"
 
         // --- MONNAIE GLOBALE ---
         let or_total = 0;
@@ -55,18 +55,72 @@
         let perso_choisi = "chevalier";
         const types_personnages = {
             chevalier: { 
-                nom: "CHEVALIER", couleur: "#00ff00", prix: 0, debloque: true,
+                nom: "CHEVALIER", couleur: "#a6a6a6", prix: 0, debloque: true,
                 vit_base: 8, deg_base: 500, niv_degats: 1, niv_vitesse: 1 
             },
             ninja: { 
-                nom: "NINJA", couleur: "#00bfff", prix: 100, debloque: false,
+                nom: "NINJA", couleur: "#2e2e2e", prix: 100, debloque: false,
                 vit_base: 12, deg_base: 300, niv_degats: 1, niv_vitesse: 1 
             },
             tank: { 
-                nom: "TANK", couleur: "#9400d3", prix: 200, debloque: false,
+                nom: "TANK", couleur: "#5e2585", prix: 200, debloque: false,
                 vit_base: 5, deg_base: 1000, niv_degats: 1, niv_vitesse: 1 
             }
         };
+
+        // --- FONCTIONS DE DESSIN PIXEL ART VECTORIEL ---
+        function dessinerChevalier(x, y, w, h) {
+            // Corps / Armure
+            ctx.fillStyle = "#8a8a8a"; ctx.fillRect(x + w*0.15, y + h*0.3, w*0.7, h*0.6);
+            ctx.fillStyle = "#6b6b6b"; ctx.fillRect(x + w*0.15, y + h*0.6, w*0.7, h*0.3); // Ombres
+            // Jambes
+            ctx.fillStyle = "#4a4a4a"; ctx.fillRect(x + w*0.2, y + h*0.9, w*0.2, h*0.1); ctx.fillRect(x + w*0.6, y + h*0.9, w*0.2, h*0.1);
+            // Casque
+            ctx.fillStyle = "#b8b8b8"; ctx.fillRect(x + w*0.25, y, w*0.5, h*0.35);
+            // Visière du casque
+            ctx.fillStyle = "#3a3a3a"; ctx.fillRect(x + w*0.3, y + h*0.12, w*0.4, h*0.1);
+            ctx.fillStyle = "#ffcc00"; ctx.fillRect(x + w*0.45, y + h*0.12, w*0.1, h*0.1); // Fente lumineuse
+            // Épée dans le dos / côté
+            ctx.fillStyle = "#d4d4d4"; ctx.fillRect(x + w*0.8, y + h*0.2, w*0.1, h*0.5);
+            ctx.fillStyle = "#8c5311"; ctx.fillRect(x + w*0.75, y + h*0.6, w*0.2, h*0.06); // Garde
+        }
+
+        function dessinerNinja(x, y, w, h) {
+            // Combinaison Noire
+            ctx.fillStyle = "#242424"; ctx.fillRect(x + w*0.2, y + h*0.25, w*0.6, h*0.65);
+            // Jambes
+            ctx.fillStyle = "#141414"; ctx.fillRect(x + w*0.25, y + h*0.9, w*0.18, h*0.1); ctx.fillRect(x + w*0.57, y + h*0.9, w*0.18, h*0.1);
+            // Tête masquée
+            ctx.fillStyle = "#1e1e1e"; ctx.fillRect(x + w*0.28, y, w*0.44, h*0.3);
+            // Bandeau frontal (Marque de fabrique)
+            ctx.fillStyle = "#00bfff"; ctx.fillRect(x + w*0.28, y + h*0.05, w*0.44, h*0.08);
+            // Fente des Yeux
+            ctx.fillStyle = "#ffebad"; ctx.fillRect(x + w*0.35, y + h*0.15, w*0.3, h*0.08);
+            ctx.fillStyle = "#ff0000"; ctx.fillRect(x + w*0.4, y + h*0.16, w*0.05, h*0.05); ctx.fillRect(x + w*0.55, y + h*0.16, w*0.05, h*0.05); // Yeux rouges féroces
+            // Écharpe rouge qui dépasse
+            ctx.fillStyle = "#ff2424"; ctx.fillRect(x + w*0.1, y + h*0.3, w*0.15, h*0.3);
+        }
+
+        function dessinerTank(x, y, w, h) {
+            // Armure Massive Violette
+            ctx.fillStyle = "#5e2585"; ctx.fillRect(x + w*0.05, y + h*0.2, w*0.9, h*0.7);
+            ctx.fillStyle = "#3d1459"; ctx.fillRect(x + w*0.05, y + h*0.6, w*0.9, h*0.3);
+            // Épaulettes renforcées
+            ctx.fillStyle = "#9400d3"; ctx.fillRect(x, y + h*0.15, w*0.22, h*0.22); ctx.fillRect(x + w*0.78, y + h*0.15, w*0.22, h*0.22);
+            // Jambes lourdes
+            ctx.fillStyle = "#222"; ctx.fillRect(x + w*0.15, y + h*0.9, w*0.25, h*0.1); ctx.fillRect(x + w*0.6, y + h*0.9, w*0.25, h*0.1);
+            // Tête / Casque en plaques
+            ctx.fillStyle = "#42324d"; ctx.fillRect(x + w*0.3, y - h*0.05, w*0.4, h*0.3);
+            // Grille de protection en titane
+            ctx.fillStyle = "#d4d4d4"; ctx.fillRect(x + w*0.38, y + h*0.05, w*0.24, h*0.15);
+            ctx.fillStyle = "#111"; ctx.fillRect(x + w*0.42, y + h*0.08, w*0.03, h*0.1); ctx.fillRect(x + w*0.49, y + h*0.08, w*0.03, h*0.1); ctx.fillRect(x + w*0.55, y + h*0.08, w*0.03, h*0.1);
+        }
+
+        function dessinerHeros(type, x, y, w, h) {
+            if (type === "chevalier") dessinerChevalier(x, y, w, h);
+            else if (type === "ninja") dessinerNinja(x, y, w, h);
+            else if (type === "tank") dessinerTank(x, y, w, h);
+        }
 
         // --- SAUVEGARDE AUTOMATIQUE ---
         function sauvegarderDonnees() {
@@ -140,10 +194,10 @@
             let bas_y = canvas.height;
 
             if (etat_jeu === "MENU_PRINCIPAL") {
-                // --- CLICS SUR LES ONGLETS DU BAS (Toujours actifs sur le menu) ---
+                // --- CLICS SUR LES ONGLETS DU BAS ---
                 if (y >= bas_y - 60 && y <= bas_y) {
                     if (x >= 0 && x < canvas.width / 2) {
-                        onglet_actif = "BOUTIQUE";
+                        onglet_actif = "AMELIORATIONS";
                     } else {
                         onglet_actif = "COMBAT";
                     }
@@ -152,24 +206,21 @@
 
                 // --- CONTENU ONGLET COMBAT ---
                 if (onglet_actif === "COMBAT") {
-                    // Bouton JOUER
                     if (x >= centre_x - 110 && x <= centre_x + 110 && y >= centre_y - 40 && y <= centre_y + 30) {
                         demarrerLaVraiePartie();
                         return true;
                     }
                 }
 
-                // --- CONTENU ONGLET BOUTIQUE ---
-                if (onglet_actif === "BOUTIQUE") {
-                    // Sélection / Achat des Héros (Ligne du haut de la boutique)
-                    // Chevalier
-                    if (x >= centre_x - 145 && x <= centre_x - 55 && y >= centre_y - 100 && y <= centre_y - 20) {
+                // --- CONTENU ONGLET AMÉLIORATIONS ---
+                if (onglet_actif === "AMELIORATIONS") {
+                    // Sélection / Achat des Héros
+                    if (x >= centre_x - 145 && x <= centre_x - 55 && y >= centre_y - 110 && y <= centre_y - 30) {
                         perso_choisi = "chevalier"; 
                         sauvegarderDonnees();
                         return true;
                     }
-                    // Ninja
-                    if (x >= centre_x - 45 && x <= centre_x + 45 && y >= centre_y - 100 && y <= centre_y - 20) {
+                    if (x >= centre_x - 45 && x <= centre_x + 45 && y >= centre_y - 110 && y <= centre_y - 30) {
                         let n = types_personnages.ninja;
                         if (n.debloque) {
                             perso_choisi = "ninja";
@@ -179,8 +230,7 @@
                         sauvegarderDonnees();
                         return true;
                     }
-                    // Tank
-                    if (x >= centre_x + 55 && x <= centre_x + 145 && y >= centre_y - 100 && y <= centre_y - 20) {
+                    if (x >= centre_x + 55 && x <= centre_x + 145 && y >= centre_y - 110 && y <= centre_y - 30) {
                         let t = types_personnages.tank;
                         if (t.debloque) {
                             perso_choisi = "tank";
@@ -191,18 +241,16 @@
                         return true;
                     }
 
-                    // Boutons d'Upgrades du héros sélectionné
+                    // Upgrades du héros sélectionné
                     let heros = types_personnages[perso_choisi];
                     let c_deg = heros.niv_degats * 10;
                     let c_vit = heros.niv_vitesse * 15;
 
-                    // +Dégâts
-                    if (x >= centre_x - 145 && x <= centre_x - 5 && y >= centre_y + 40 && y <= centre_y + 95) {
+                    if (x >= centre_x - 145 && x <= centre_x - 5 && y >= centre_y + 45 && y <= centre_y + 100) {
                         if (or_total >= c_deg) { or_total -= c_deg; heros.niv_degats++; sauvegarderDonnees(); }
                         return true;
                     }
-                    // +Vitesse
-                    if (x >= centre_x + 5 && x <= centre_x + 145 && y >= centre_y + 40 && y <= centre_y + 95) {
+                    if (x >= centre_x + 5 && x <= centre_x + 145 && y >= centre_y + 45 && y <= centre_y + 100) {
                         if (or_total >= c_vit) { or_total -= c_vit; heros.niv_vitesse++; sauvegarderDonnees(); }
                         return true;
                     }
@@ -247,8 +295,8 @@
             canvas.height = window.innerHeight;
             let tailleMin = Math.min(canvas.width, canvas.height);
             taille_coffre = tailleMin * 0.22; 
-            joueur_largeur = tailleMin * 0.1;
-            joueur_hauteur = tailleMin * 0.1;
+            joueur_largeur = tailleMin * 0.11; // Légèrement plus grand pour apprécier les détails
+            joueur_hauteur = tailleMin * 0.11;
 
             if (etat_jeu === "JEU") {
                 joueur_x = canvas.width / 2 - joueur_largeur / 2;
@@ -268,14 +316,14 @@
 
         function faireSpawnEnnemis() {
             let coins = [{x: 0, y: 0}, {x: canvas.width, y: 0}, {x: 0, y: canvas.height}, {x: canvas.width, y: canvas.height}];
-            let tEnnemi = Math.min(canvas.width, canvas.height) * 0.08;
+            let tEnnemi = Math.min(canvas.width, canvas.height) * 0.082;
 
             coins.forEach((coin) => {
                 let estKamikaze = vague >= 2 && Math.random() < 0.35;
                 if (estKamikaze) {
                     liste_ennemis.push({
-                        type: "kamikaze", x: coin.x - (tEnnemi*0.7/2), y: coin.y - (tEnnemi*0.7/2),
-                        largeur: tEnnemi * 0.7, hauteur: tEnnemi * 0.7, vitesse: (4 + (vague - 1) * 0.4) * 1.6,
+                        type: "kamikaze", x: coin.x - (tEnnemi*0.75/2), y: coin.y - (tEnnemi*0.75/2),
+                        largeur: tEnnemi * 0.75, hauteur: tEnnemi * 0.75, vitesse: (4 + (vague - 1) * 0.4) * 1.5,
                         hp: (1000 + (vague - 1) * 350) * 0.4, max_hp: (1000 + (vague - 1) * 350) * 0.4,
                         degats: (100 + (vague - 1) * 20) * 1.5, couleur: "#ff9900", invulnerable_timer: 0
                     });
@@ -379,141 +427,163 @@
                 ctx.fillStyle = "rgba(15, 15, 22, 1)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // --- HEADER COMMUN COMPTEUR D'OR ---
+                // --- COMPTEUR D'OR UNIQUE ---
                 ctx.fillStyle = "#222535"; ctx.fillRect(centre_x - 110, 25, 220, 40);
                 ctx.strokeStyle = "#ffff00"; ctx.lineWidth = 2; ctx.strokeRect(centre_x - 110, 25, 220, 40);
                 ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center";
                 ctx.fillText("MON OR : " + or_total + " ⛁", centre_x, 51);
 
                 // ============================================
-                // OGELET ACTIF : COMBAT (Page d'accueil)
+                // ONGLET : COMBAT
                 // ============================================
                 if (onglet_actif === "COMBAT") {
                     ctx.fillStyle = "#ffff00"; ctx.font = "bold 24px sans-serif";
-                    ctx.fillText("🛡️ DEFENDS LE COFFRE", centre_x, centre_y - 120);
+                    ctx.fillText("🛡️ DÉFENDS LE COFFRE", centre_x, centre_y - 130);
 
-                    // Gros Bouton Jouer
-                    ctx.fillStyle = "#ff4747"; ctx.fillRect(centre_x - 110, centre_y - 40, 220, 70);
-                    ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.strokeRect(centre_x - 110, centre_y - 40, 220, 70);
-                    ctx.fillStyle = "#fff"; ctx.font = "bold 24px sans-serif";
-                    ctx.fillText("COMBAT ▶", centre_x, centre_y + 4);
+                    // Aperçu géant du héros équipé au centre
+                    let tailleApercu = 70;
+                    dessinerHeros(perso_choisi, centre_x - tailleApercu/2, centre_y - 100, tailleApercu, tailleApercu);
 
-                    // Info Perso Actuel
-                    let h = types_personnages[perso_choisi];
-                    ctx.fillStyle = "#aaa"; ctx.font = "14px sans-serif";
-                    ctx.fillText("Héros équipé : ", centre_x, centre_y + 80);
-                    ctx.fillStyle = h.couleur; ctx.font = "bold 16px sans-serif";
-                    ctx.fillText(h.nom, centre_x, centre_y + 105);
+                    // Bouton Principal
+                    ctx.fillStyle = "#ff4747"; ctx.fillRect(centre_x - 110, centre_y + 10, 220, 65);
+                    ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.strokeRect(centre_x - 110, centre_y + 10, 220, 65);
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 22px sans-serif";
+                    ctx.fillText("COMBAT ▶", centre_x, centre_y + 50);
                 }
 
                 // ============================================
-                // ONGLET ACTIF : BOUTIQUE (Cartes et Upgrades)
+                // ONGLET : AMÉLIORATIONS
                 // ============================================
-                if (onglet_actif === "BOUTIQUE") {
-                    ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif";
-                    ctx.fillText("DECK DE COMBAT", centre_x, centre_y - 130);
+                if (onglet_actif === "AMELIORATIONS") {
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 15px sans-serif";
+                    ctx.fillText("CHOIX DU HÉROS", centre_x, centre_y - 135);
 
-                    // --- Rangée des Héros ---
+                    // --- Grille des cartes héros ---
                     // Chevalier
-                    let c = types_personnages.chevalier; let estChoisiC = (perso_choisi === "chevalier");
-                    ctx.lineWidth = estChoisiC ? 3 : 1; ctx.strokeStyle = estChoisiC ? "#00ff00" : "#444";
-                    ctx.fillStyle = estChoisiC ? "#1a331a" : "#222";
-                    ctx.fillRect(centre_x - 145, centre_y - 100, 90, 80); ctx.strokeRect(centre_x - 145, centre_y - 100, 90, 80);
-                    ctx.fillStyle = "#00ff00"; ctx.font = "bold 12px sans-serif"; ctx.fillText("CHEVALIER", centre_x - 100, centre_y - 70);
-                    ctx.fillStyle = "#aaa"; ctx.font = "10px sans-serif"; ctx.fillText("ÉQUIPÉ", centre_x - 100, centre_y - 40);
+                    let estChoisiC = (perso_choisi === "chevalier");
+                    ctx.lineWidth = estChoisiC ? 3 : 1; ctx.strokeStyle = estChoisiC ? "#ffaa00" : "#444";
+                    ctx.fillStyle = estChoisiC ? "#222a22" : "#222";
+                    ctx.fillRect(centre_x - 145, centre_y - 110, 90, 80); ctx.strokeRect(centre_x - 145, centre_y - 110, 90, 80);
+                    dessinerHeros("chevalier", centre_x - 115, centre_y - 105, 30, 30);
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 10px sans-serif"; ctx.fillText("CHEVALIER", centre_x - 100, centre_y - 42);
 
                     // Ninja
                     let n = types_personnages.ninja; let estChoisiN = (perso_choisi === "ninja");
-                    ctx.lineWidth = estChoisiN ? 3 : 1; ctx.strokeStyle = estChoisiN ? "#00bfff" : "#444";
-                    ctx.fillStyle = n.debloque ? (estChoisiN ? "#142d3d" : "#222") : (or_total >= n.prix ? "#152535" : "#111");
-                    ctx.fillRect(centre_x - 45, centre_y - 100, 90, 80); ctx.strokeRect(centre_x - 45, centre_y - 100, 90, 80);
-                    ctx.fillStyle = "#00bfff"; ctx.font = "bold 12px sans-serif"; ctx.fillText("NINJA", centre_x, centre_y - 70);
-                    ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText(n.debloque ? (estChoisiN ? "ÉQUIPÉ" : "DISPO") : n.prix + " ⛁", centre_x, centre_y - 40);
+                    ctx.lineWidth = estChoisiN ? 3 : 1; ctx.strokeStyle = estChoisiN ? "#ffaa00" : "#444";
+                    ctx.fillStyle = n.debloque ? (estChoisiN ? "#222a35" : "#222") : "#111";
+                    ctx.fillRect(centre_x - 45, centre_y - 110, 90, 80); ctx.strokeRect(centre_x - 45, centre_y - 110, 90, 80);
+                    dessinerHeros("ninja", centre_x - 15, centre_y - 105, 30, 30);
+                    ctx.fillStyle = n.debloque ? "#fff" : "#ffff00"; ctx.font = "bold 10px sans-serif";
+                    ctx.fillText(n.debloque ? "NINJA" : "100 ⛁", centre_x, centre_y - 42);
 
                     // Tank
                     let t = types_personnages.tank; let estChoisiT = (perso_choisi === "tank");
-                    ctx.lineWidth = estChoisiT ? 3 : 1; ctx.strokeStyle = estChoisiT ? "#9400d3" : "#444";
-                    ctx.fillStyle = t.debloque ? (estChoisiT ? "#2d143d" : "#222") : (or_total >= t.prix ? "#2d1535" : "#111");
-                    ctx.fillRect(centre_x + 55, centre_y - 100, 90, 80); ctx.strokeRect(centre_x + 55, centre_y - 100, 90, 80);
-                    ctx.fillStyle = "#9400d3"; ctx.font = "bold 12px sans-serif"; ctx.fillText("TANK", centre_x + 100, centre_y - 70);
-                    ctx.fillStyle = "#ffff00"; ctx.font = "10px sans-serif"; ctx.fillText(t.debloque ? (estChoisiT ? "ÉQUIPÉ" : "DISPO") : t.prix + " ⛁", centre_x + 100, centre_y - 40);
+                    ctx.lineWidth = estChoisiT ? 3 : 1; ctx.strokeStyle = estChoisiT ? "#ffaa00" : "#444";
+                    ctx.fillStyle = t.debloque ? (estChoisiT ? "#301a35" : "#222") : "#111";
+                    ctx.fillRect(centre_x + 55, centre_y - 110, 90, 80); ctx.strokeRect(centre_x + 55, centre_y - 110, 90, 80);
+                    dessinerHeros("tank", centre_x + 85, centre_y - 105, 30, 30);
+                    ctx.fillStyle = t.debloque ? "#fff" : "#ffff00"; ctx.font = "bold 10px sans-serif";
+                    ctx.fillText(t.debloque ? "TANK" : "200 ⛁", centre_x + 100, centre_y - 42);
 
-                    // --- Améliorations Dynamiques du Héros Sélectionné ---
+                    // --- Niveaux et Statistiques ---
                     let heros = types_personnages[perso_choisi];
-                    ctx.fillStyle = heros.couleur; ctx.font = "bold 13px sans-serif"; 
-                    ctx.fillText("NIVEAUX DE " + heros.nom, centre_x, centre_y + 15);
+                    ctx.fillStyle = "#ffaa00"; ctx.font = "bold 13px sans-serif"; 
+                    ctx.fillText("AMÉLIORER : " + heros.nom, centre_x, centre_y + 15);
                     
                     let c_deg = heros.niv_degats * 10; let c_vit = heros.niv_vitesse * 15;
 
-                    // Case Dégâts
-                    ctx.fillStyle = or_total >= c_deg ? "#2646c4" : "#333"; ctx.fillRect(centre_x - 145, centre_y + 40, 140, 55);
-                    ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(centre_x - 145, centre_y + 40, 140, 55);
-                    ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚔️ DÉGÂTS (Niv." + heros.niv_degats + ")", centre_x - 75, centre_y + 62);
-                    ctx.fillStyle = "#ffff00"; ctx.fillText(c_deg + " ⛁", centre_x - 75, centre_y + 82);
+                    // Bouton +Dégâts
+                    ctx.fillStyle = or_total >= c_deg ? "#1a73e8" : "#333"; ctx.fillRect(centre_x - 145, centre_y + 45, 140, 55);
+                    ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(centre_x - 145, centre_y + 45, 140, 55);
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚔️ DÉGÂTS (Niv." + heros.niv_degats + ")", centre_x - 75, centre_y + 68);
+                    ctx.fillStyle = "#ffff00"; ctx.fillText(c_deg + " ⛁", centre_x - 75, centre_y + 88);
 
-                    // Case Vitesse
-                    ctx.fillStyle = or_total >= c_vit ? "#2646c4" : "#333"; ctx.fillRect(centre_x + 5, centre_y + 40, 140, 55);
-                    ctx.strokeRect(centre_x + 5, centre_y + 40, 140, 55);
-                    ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚡ VITESSE (Niv." + heros.niv_vitesse + ")", centre_x + 75, centre_y + 62);
-                    ctx.fillStyle = "#ffff00"; ctx.fillText(c_vit + " ⛁", centre_x + 75, centre_y + 82);
+                    // Bouton +Vitesse
+                    ctx.fillStyle = or_total >= c_vit ? "#1a73e8" : "#333"; ctx.fillRect(centre_x + 5, centre_y + 45, 140, 55);
+                    ctx.strokeRect(centre_x + 5, centre_y + 45, 140, 55);
+                    ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚡ VITESSE (Niv." + heros.niv_vitesse + ")", centre_x + 75, centre_y + 68);
+                    ctx.fillStyle = "#ffff00"; ctx.fillText(c_vit + " ⛁", centre_x + 75, centre_y + 88);
                 }
 
                 // ============================================
-                // BARRE D'ONGLETS FIXE (Tout en bas)
+                // BARRE D'ONGLETS CLASH ROYALE
                 // ============================================
                 ctx.fillStyle = "#1b1c26"; ctx.fillRect(0, bas_y - 60, canvas.width, 60);
                 ctx.strokeStyle = "#2d2f45"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, bas_y - 60); ctx.lineTo(canvas.width, bas_y - 60); ctx.stroke();
-                
-                // Séparateur central
                 ctx.beginPath(); ctx.moveTo(canvas.width / 2, bas_y - 60); ctx.lineTo(canvas.width / 2, bas_y); ctx.stroke();
 
-                // Onglet 1 : Boutique (Gauche)
-                if (onglet_actif === "BOUTIQUE") { ctx.fillStyle = "#2c2e43"; ctx.fillRect(0, bas_y - 59, canvas.width / 2 - 1, 58); }
-                ctx.fillStyle = onglet_actif === "BOUTIQUE" ? "#fff" : "#777"; ctx.font = "bold 14px sans-serif";
-                ctx.fillText("🛍️ BOUTIQUE", canvas.width * 0.25, bas_y - 24);
+                // Onglet Améliorations (Gauche)
+                if (onglet_actif === "AMELIORATIONS") { ctx.fillStyle = "#2c2e43"; ctx.fillRect(0, bas_y - 59, canvas.width / 2 - 1, 58); }
+                ctx.fillStyle = onglet_actif === "AMELIORATIONS" ? "#fff" : "#777"; ctx.font = "bold 13px sans-serif";
+                ctx.fillText("🛠️ AMÉLIORATIONS", canvas.width * 0.25, bas_y - 24);
 
-                // Onglet 2 : Combat (Droite)
+                // Onglet Combat (Droite)
                 if (onglet_actif === "COMBAT") { ctx.fillStyle = "#2c2e43"; ctx.fillRect(canvas.width / 2 + 1, bas_y - 59, canvas.width / 2, 58); }
-                ctx.fillStyle = onglet_actif === "COMBAT" ? "#fff" : "#777"; ctx.font = "bold 14px sans-serif";
+                ctx.fillStyle = onglet_actif === "COMBAT" ? "#fff" : "#777"; ctx.font = "bold 13px sans-serif";
                 ctx.fillText("⚔️ COMBAT", canvas.width * 0.75, bas_y - 24);
 
                 return;
             }
 
-            // JEU ACTIF (Reste inchangé)
+            // ============================================
+            // JEU ACTIF
+            // ============================================
             let lChemin = Math.min(canvas.width, canvas.height) * 0.18;
             ctx.strokeStyle = "#3c3c3c"; ctx.lineWidth = lChemin; ctx.lineCap = "round";
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, canvas.height); ctx.moveTo(canvas.width, 0); ctx.lineTo(0, canvas.height); ctx.stroke();
 
+            // Dessin des ennemis en Pixel Art
             liste_ennemis.forEach(e => {
-                ctx.fillStyle = e.couleur; ctx.fillRect(e.x, e.y, e.largeur, e.hauteur);
-                ctx.fillStyle = "#000"; ctx.fillRect(e.x, e.y - 12, e.largeur, 6);
-                ctx.fillStyle = "#ff0000"; ctx.fillRect(e.x, e.y - 12, Math.max(0, (e.hp / e.max_hp) * e.largeur), 6);
+                if (e.type === "kamikaze") {
+                    // Bombe orange avec mèche rouge allumée
+                    ctx.fillStyle = "#ff6600"; ctx.beginPath(); ctx.arc(e.x + e.largeur/2, e.y + e.hauteur/2, e.largeur/2, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "#fff"; ctx.fillRect(e.x + e.largeur*0.4, e.y - 4, e.largeur*0.2, 5); // mèche
+                    ctx.fillStyle = "#ffff00"; ctx.fillRect(e.x + e.largeur*0.35, e.y - 8, e.largeur*0.3, e.largeur*0.3); // Étincelle
+                } else {
+                    // Monstres rouges avec petites cornes noires
+                    ctx.fillStyle = "#ff4d4d"; ctx.fillRect(e.x, e.y, e.largeur, e.hauteur);
+                    ctx.fillStyle = "#111"; // Cornes
+                    ctx.fillRect(e.x, e.y - 5, e.largeur*0.2, 6); ctx.fillRect(e.x + e.largeur*0.8, e.y - 5, e.largeur*0.2, 6);
+                    ctx.fillStyle = "#fff"; ctx.fillRect(e.x + e.largeur*0.2, e.y + 6, e.largeur*0.15, e.largeur*0.15); ctx.fillRect(e.x + e.largeur*0.6, e.y + 6, e.largeur*0.15, e.largeur*0.15); // Yeux
+                }
+                
+                // Barre de vie de l'ennemi
+                ctx.fillStyle = "#000"; ctx.fillRect(e.x, e.y - 14, e.largeur, 5);
+                ctx.fillStyle = "#ff0000"; ctx.fillRect(e.x, e.y - 14, Math.max(0, (e.hp / e.max_hp) * e.largeur), 5);
             });
 
-            ctx.fillStyle = "#ffff00"; ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
-            let lBarre = Math.min(canvas.width * 0.5, 200);
-            ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(centre_x - lBarre / 2, centre_y - taille_coffre / 2 - 22, lBarre, 10);
-            ctx.fillStyle = "#00ff00"; ctx.fillRect(centre_x - lBarre / 2, centre_y - taille_coffre / 2 - 22, (hp_coffre / max_hp_coffre) * lBarre, 10);
+            // Coffre Fort au centre
+            ctx.fillStyle = "#d4af37"; ctx.fillRect(centre_x - taille_coffre / 2, centre_y - taille_coffre / 2, taille_coffre, taille_coffre);
+            ctx.fillStyle = "#aa8413"; ctx.fillRect(centre_x - taille_coffre / 2 + 10, centre_y - taille_coffre / 2 + 10, taille_coffre - 20, taille_coffre - 20);
+            ctx.fillStyle = "#555"; ctx.fillRect(centre_x - 10, centre_y - 20, 20, 40); // Serrure du coffre
 
-            popups_degats.forEach(p => { ctx.fillStyle = "#ff3333"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("-" + p.texte, p.x, p.y); });
+            // Barre de vie du coffre
+            let lBarre = Math.min(canvas.width * 0.5, 200);
+            ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(centre_x - lBarre / 2, centre_y - taille_coffre / 2 - 25, lBarre, 10);
+            ctx.fillStyle = "#00ff00"; ctx.fillRect(centre_x - lBarre / 2, centre_y - taille_coffre / 2 - 25, (hp_coffre / max_hp_coffre) * lBarre, 10);
+
+            // Popups Dégâts
+            popups_degats.forEach(p => { ctx.fillStyle = "#ff3333"; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "center"; ctx.fillText("-" + p.texte, p.x, p.y); });
+            
+            // Barre d'XP en haut
             ctx.fillStyle = "#333"; ctx.fillRect(0, 0, canvas.width, 6);
             ctx.fillStyle = "#00bfff"; ctx.fillRect(0, 0, (joueur_xp / xp_necessaire) * canvas.width, 6);
 
+            // Interface textuelle en combat
             ctx.fillStyle = "#fff"; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "left";
-            ctx.fillText("SCORE: " + score, 20, 30); ctx.fillText("OR PARTIE: +" + or_gagne + "⛁", 20, 52); ctx.fillText("NIV. " + joueur_niveau, 20, 74);
+            ctx.fillText("SCORE: " + score, 20, 30); ctx.fillText("OR: +" + or_gagne + "⛁", 20, 52); ctx.fillText("NIV. " + joueur_niveau, 20, 74);
             ctx.textAlign = "right"; ctx.fillText("VAGUE: " + vague, canvas.width - 20, 30);
 
-            if (level_up_timer > 0) { ctx.fillStyle = "#00bfff"; ctx.font = "bold 20px sans-serif"; ctx.textAlign = "center"; ctx.fillText("LEVEL UP ! " + message_level_up, centre_x, 40); }
+            if (level_up_timer > 0) { ctx.fillStyle = "#00bfff"; ctx.font = "bold 20px sans-serif"; ctx.textAlign = "center"; ctx.fillText("LEVEL UP ! " + message_level_up, centre_x, 45); }
 
-            ctx.fillStyle = types_personnages[perso_choisi].couleur;
-            ctx.fillRect(joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
+            // Dessin dynamique du Héros choisi contrôlé par le joueur
+            dessinerHeros(perso_choisi, joueur_x, joueur_y, joueur_largeur, joueur_hauteur);
 
             if (etat_jeu === "GAMEOVER") {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.9)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#ff4d4d"; ctx.font = "bold 26px sans-serif"; ctx.textAlign = "center"; ctx.fillText("LE COFFRE A ÉTÉ DÉTRUIT !", centre_x, centre_y - 100);
-                ctx.fillStyle = "#aaa"; ctx.font = "18px sans-serif"; ctx.fillText("Score : " + score, centre_x, centre_y - 50);
-                ctx.fillStyle = "#ffff00"; ctx.fillText("Or gagné : +" + or_gagne + " ⛁", centre_x, centre_y - 20);
+                ctx.fillStyle = "#ff4d4d"; ctx.font = "bold 25px sans-serif"; ctx.textAlign = "center"; ctx.fillText("LE COFFRE A ÉTÉ DÉTRUIT !", centre_x, centre_y - 100);
+                ctx.fillStyle = "#aaa"; ctx.font = "18px sans-serif"; ctx.fillText("Score final : " + score, centre_x, centre_y - 50);
+                ctx.fillStyle = "#ffff00"; ctx.fillText("Or accumulé : +" + or_gagne + " ⛁", centre_x, centre_y - 20);
 
                 ctx.fillStyle = "#00ff00"; ctx.fillRect(centre_x - 120, centre_y + 60, 240, 50);
                 ctx.fillStyle = "#000"; ctx.font = "bold 18px sans-serif"; ctx.fillText("RETOUR AU MENU ↻", centre_x, centre_y + 92);
