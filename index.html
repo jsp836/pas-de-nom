@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Défends le Coffre ! v7.6</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Défends le Coffre ! v7.7</title>
     <style>
         html, body {
             margin: 0;
@@ -23,15 +23,40 @@
             display: block;
             background-color: #1e1e1e;
         }
+        /* Style du bouton plein écran tactile */
+        #fsBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: background 0.2s, transform 0.1s, border-color 0.2s;
+            letter-spacing: 0.5px;
+        }
+        #fsBtn:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #fff;
+        }
     </style>
 </head>
 <body>
 
+    <button id="fsBtn">📱 PLEIN ÉCRAN</button>
     <canvas id="jeuCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById("jeuCanvas");
         const ctx = canvas.getContext("2d");
+        const fsBtn = document.getElementById("fsBtn");
 
         let taille_coffre = 100; 
         let joueur_largeur = 50;   
@@ -64,7 +89,6 @@
             }
         };
 
-        // --- MOTEUR AUDIO (WEB AUDIO API MULTI-SONS) ---
         let audioCtx = null;
 
         function initAudio() {
@@ -93,7 +117,6 @@
                 osc.start(maintenant); osc.stop(maintenant + 0.05);
             } 
             else if (type === "explosion") {
-                // Son de bombe kamikaze (Bruit blanc synthétique progressif)
                 osc.type = "sawtooth";
                 osc.frequency.setValueAtTime(120, maintenant);
                 osc.frequency.linearRampToValueAtTime(10, maintenant + 0.4);
@@ -102,7 +125,6 @@
                 osc.start(maintenant); osc.stop(maintenant + 0.4);
             } 
             else if (type === "hit_coffre_demon") {
-                // Son d'attaque physique/morsure du démon normal sur le coffre
                 osc.type = "triangle";
                 osc.frequency.setValueAtTime(180, maintenant);
                 osc.frequency.linearRampToValueAtTime(60, maintenant + 0.2);
@@ -111,7 +133,6 @@
                 osc.start(maintenant); osc.stop(maintenant + 0.2);
             }
             else if (type === "hit_chevalier") {
-                // Sifflement métallique aigu d'une épée
                 osc.type = "sawtooth";
                 osc.frequency.setValueAtTime(800, maintenant);
                 osc.frequency.exponentialRampToValueAtTime(200, maintenant + 0.1);
@@ -120,7 +141,6 @@
                 osc.start(maintenant); osc.stop(maintenant + 0.1);
             } 
             else if (type === "hit_ninja") {
-                // Coupure légère, ultra rapide et tranchante
                 osc.type = "sine";
                 osc.frequency.setValueAtTime(1200, maintenant);
                 osc.frequency.exponentialRampToValueAtTime(600, maintenant + 0.05);
@@ -129,7 +149,6 @@
                 osc.start(maintenant); osc.stop(maintenant + 0.05);
             } 
             else if (type === "hit_tank") {
-                // Impact lourd de bouclier ou de marteau de guerre
                 osc.type = "triangle";
                 osc.frequency.setValueAtTime(90, maintenant);
                 osc.frequency.linearRampToValueAtTime(25, maintenant + 0.25);
@@ -148,7 +167,6 @@
             }
         }
 
-        // --- GRAPHISMES PIXEL ART ---
         function dessinerChevalier(x, y, w, h) {
             ctx.fillStyle = "#8a8a8a"; ctx.fillRect(x + w*0.15, y + h*0.3, w*0.7, h*0.6);
             ctx.fillStyle = "#6b6b6b"; ctx.fillRect(x + w*0.15, y + h*0.6, w*0.7, h*0.3);
@@ -190,13 +208,11 @@
             ctx.fillStyle = "#111111"; 
             let epaisseur = Math.max(3, e.largeur * 0.08);
 
-            // Corne Gauche incurvée
             ctx.fillRect(e.x - epaisseur, e.y + 2, epaisseur, epaisseur); 
             ctx.fillRect(e.x - epaisseur*2, e.y, epaisseur, epaisseur);   
             ctx.fillRect(e.x - epaisseur*2, e.y - epaisseur, epaisseur, epaisseur); 
             ctx.fillRect(e.x - epaisseur, e.y - epaisseur*2, epaisseur, epaisseur); 
 
-            // Corne Droite incurvée
             ctx.fillRect(e.x + e.largeur, e.y + 2, epaisseur, epaisseur); 
             ctx.fillRect(e.x + e.largeur + epaisseur, e.y, epaisseur, epaisseur); 
             ctx.fillRect(e.x + e.largeur + epaisseur, e.y - epaisseur, epaisseur, epaisseur); 
@@ -254,6 +270,27 @@
         let intervalle_spawn = 1200; 
         let mode_tactile = false;
         let touches = {};
+
+        // --- PLEIN ÉCRAN MOBILE ---
+        fsBtn.addEventListener("click", () => {
+            initAudio();
+            jouerSon("clic");
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log("Erreur d'accès plein écran : ", err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        document.addEventListener("fullscreenchange", () => {
+            if (document.fullscreenElement) {
+                fsBtn.innerText = "❌ FERMER";
+            } else {
+                fsBtn.innerText = "📱 PLEIN ÉCRAN";
+            }
+        });
 
         window.addEventListener("keydown", (e) => { touches[e.code] = true; mode_tactile = false; });
         window.addEventListener("keyup", (e) => touches[e.code] = false);
@@ -449,13 +486,11 @@
                     if (e.invulnerable_timer > 0) e.invulnerable_timer--;
 
                     if (collision(rJoueur, e) && e.invulnerable_timer === 0) {
-                        // Son spécifique selon le héros équipé
                         jouerSon("hit_" + perso_choisi);
                         e.hp -= deg; e.invulnerable_timer = 15; 
                         popups_degats.push({ x: e.x + e.largeur / 2, y: e.y, texte: deg, vie: 30 });
                     }
                     if (collision(rCoffre, e)) { 
-                        // Son spécifique selon l'attaquant qui touche le coffre
                         if (e.type === "kamikaze") {
                             jouerSon("explosion");
                         } else {
@@ -472,6 +507,13 @@
         function dessiner() {
             ctx.fillStyle = "#1e1e1e"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             let centre_x = canvas.width / 2; let centre_y = canvas.height / 2; let bas_y = canvas.height;
+
+            // Masquer/Afficher le bouton Plein Écran dynamiquement selon l'état du jeu
+            if (etat_jeu === "JEU") {
+                fsBtn.style.display = "none";
+            } else {
+                fsBtn.style.display = "block";
+            }
 
             if (etat_jeu === "MENU_PRINCIPAL") {
                 ctx.fillStyle = "rgba(15, 15, 22, 1)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -599,10 +641,5 @@
             dessiner(); requestAnimationFrame(bouclePrincipale);
         }
 
-        window.addEventListener('load', () => {
+        window.onload = function () {
             chargerDonnees(); redimensionner();
-            tempsPrecedent = performance.now(); requestAnimationFrame(bouclePrincipale);
-        });
-    </script>
-</body>
-</html>
