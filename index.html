@@ -72,9 +72,26 @@
             },
             tank: { 
                 nom: "TANK", couleur: "#5e2585", prix: 200, debloque: false,
-                vit_base: 5, deg_base: 1000, niv_degats: 1, niv_vitesse: 1 
+                vit_base: 3, deg_base: 1000, niv_degats: 1, niv_vitesse: 1 
             }
         };
+
+        let decor = [];
+        function rafraichirDecor() {
+            decor = [];
+            let lChemin = Math.min(canvas.width, canvas.height) * 0.18 / 2;
+            for(let i=0; i<80; i++){
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                // Vérifier si sur le coffre
+                if(Math.hypot(x - canvas.width/2, y - canvas.height/2) < taille_coffre * 0.7) continue;
+                // Vérifier si sur les chemins
+                let d1 = Math.abs(x - y) / Math.sqrt(2);
+                let d2 = Math.abs(x + y - canvas.height) / Math.sqrt(2);
+                if(d1 < lChemin || d2 < lChemin) continue;
+                decor.push({x, y, s: 4 + Math.random() * 8, type: Math.random() > 0.5 ? 'rond' : 'carre'});
+            }
+        }
 
         let audioCtx = null;
 
@@ -359,6 +376,8 @@
             let tailleMin = Math.min(canvas.width, canvas.height);
             taille_coffre = tailleMin * 0.22; joueur_largeur = tailleMin * 0.11; joueur_hauteur = tailleMin * 0.11;
 
+            rafraichirDecor();
+
             if (etat_jeu === "JEU") {
                 joueur_x = canvas.width / 2 - joueur_largeur / 2;
                 joueur_y = canvas.height / 2 - joueur_hauteur / 2 + (taille_coffre * 1.1);
@@ -576,6 +595,16 @@
 
             let lChemin = Math.min(canvas.width, canvas.height) * 0.18;
             ctx.strokeStyle = "#3c3c3c"; ctx.lineWidth = lChemin; ctx.lineCap = "round";
+
+            decor.forEach(d => {
+                ctx.fillStyle = "#1a4a1a";
+                if(d.type === 'rond') {
+                    ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, Math.PI*2); ctx.fill();
+                } else {
+                    ctx.fillRect(d.x, d.y, d.s, d.s);
+                }
+            });
+
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, canvas.height); ctx.moveTo(canvas.width, 0); ctx.lineTo(0, canvas.height); ctx.stroke();
 
             liste_ennemis.forEach(e => {
