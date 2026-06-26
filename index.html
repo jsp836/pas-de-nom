@@ -68,15 +68,17 @@
         let decor = [];
         function rafraichirDecor() {
             decor = [];
-            let lChemin = Math.min(canvas.width, canvas.height) * 0.18 / 2;
+            // Largeur du chemin adaptative (15% de la diagonale)
+            let ratio = canvas.height / canvas.width;
+            let lChemin = Math.sqrt(canvas.width ** 2 + canvas.height ** 2) * 0.08; 
             for(let i=0; i<80; i++){
                 let x = Math.random() * canvas.width;
                 let y = Math.random() * canvas.height;
                 // Vérifier si sur le coffre
                 if(Math.hypot(x - canvas.width/2, y - canvas.height/2) < taille_coffre * 0.7) continue;
-                // Vérifier si sur les chemins
-                let d1 = Math.abs(x - y) / Math.sqrt(2);
-                let d2 = Math.abs(x + y - canvas.height) / Math.sqrt(2);
+                // Calcul de distance perpendiculaire à la diagonale (plus précis pour écrans non carrés)
+                let d1 = Math.abs(x * canvas.height - y * canvas.width) / Math.sqrt(canvas.width**2 + canvas.height**2);
+                let d2 = Math.abs(x * canvas.height - (canvas.height - y) * canvas.width) / Math.sqrt(canvas.width**2 + canvas.height**2);
                 if(d1 < lChemin || d2 < lChemin) continue;
                 decor.push({x, y, s: 4 + Math.random() * 8, type: Math.random() > 0.5 ? 'rond' : 'carre'});
             }
@@ -84,16 +86,18 @@
 
         // Fonction pour dessiner les chemins en diagonale originaux
         function dessinerCheminDiagonale() {
-            let l = Math.min(canvas.width, canvas.height) * 0.18;
+            let l = Math.sqrt(canvas.width ** 2 + canvas.height ** 2) * 0.16; // Même largeur que le clear
             ctx.fillStyle = "#5c4033";
             ctx.save();
+            // Diagonale 1
             ctx.beginPath();
             ctx.moveTo(0, 0); ctx.lineTo(canvas.width, canvas.height);
-            ctx.lineTo(canvas.width - l, canvas.height); ctx.lineTo(0, l);
+            ctx.lineTo(canvas.width - (l * canvas.width / canvas.height), canvas.height); ctx.lineTo(0, l);
             ctx.fill();
+            // Diagonale 2
             ctx.beginPath();
             ctx.moveTo(canvas.width, 0); ctx.lineTo(0, canvas.height);
-            ctx.lineTo(l, canvas.height); ctx.lineTo(canvas.width, l);
+            ctx.lineTo(l * canvas.width / canvas.height, canvas.height); ctx.lineTo(canvas.width, l);
             ctx.fill();
             ctx.restore();
         }
