@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Défends le Coffre ! v7.9 (Version Forêt)</title>
-    <!-- Chargement du SDK Poki -->
     <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
     
     <style>
@@ -40,7 +39,6 @@
         let pokiSDKReady = false;
         PokiSDK.init().then(() => { pokiSDKReady = true; }).catch(() => {});
 
-        // Paramètres de jeu
         let taille_coffre = 100; 
         let joueur_largeur = 50;   
         let joueur_hauteur = 50;   
@@ -57,20 +55,10 @@
         let or_total = 0;
         let perso_choisi = "chevalier";
 
-        // Configuration des personnages
         const types_personnages = {
-            chevalier: { 
-                nom: "CHEVALIER", couleur: "#a6a6a6", prix: 0, debloque: true,
-                vit_base: 8, deg_base: 500, niv_degats: 1, niv_vitesse: 1 
-            },
-            ninja: { 
-                nom: "NINJA", couleur: "#2e2e2e", prix: 100, debloque: false,
-                vit_base: 12, deg_base: 300, niv_degats: 1, niv_vitesse: 1 
-            },
-            tank: { 
-                nom: "TANK", couleur: "#5e2585", prix: 200, debloque: false,
-                vit_base: 3, deg_base: 1000, niv_degats: 1, niv_vitesse: 1 
-            }
+            chevalier: { nom: "CHEVALIER", couleur: "#a6a6a6", prix: 0, debloque: true, vit_base: 8, deg_base: 500, niv_degats: 1, niv_vitesse: 1 },
+            ninja: { nom: "NINJA", couleur: "#2e2e2e", prix: 100, debloque: false, vit_base: 12, deg_base: 300, niv_degats: 1, niv_vitesse: 1 },
+            tank: { nom: "TANK", couleur: "#5e2585", prix: 200, debloque: false, vit_base: 3, deg_base: 1000, niv_degats: 1, niv_vitesse: 1 }
         };
 
         let decor = [];
@@ -86,6 +74,19 @@
                 if(d1 < lChemin || d2 < lChemin) continue;
                 decor.push({x, y, s: 1 + Math.random() * 4, c: "rgba(20, 60, 20, 0.4)"});
             }
+        }
+
+        function dessinerChemin() {
+            let lChemin = Math.min(canvas.width, canvas.height) * 0.18;
+            ctx.fillStyle = "#5c4033"; // Couleur terre battue
+            // Croix diagonale
+            ctx.save();
+            ctx.translate(canvas.width/2, canvas.height/2);
+            ctx.rotate(Math.PI/4);
+            ctx.fillRect(-lChemin/2, -canvas.width, lChemin, canvas.width * 2);
+            ctx.rotate(Math.PI/2);
+            ctx.fillRect(-lChemin/2, -canvas.width, lChemin, canvas.width * 2);
+            ctx.restore();
         }
 
         function dessinerDecors() {
@@ -107,8 +108,6 @@
             let gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
             let maintenant = audioCtx.currentTime;
-            
-            // Logique de synthèse sonore simple
             if (type === "clic") { osc.type = "sine"; osc.frequency.setValueAtTime(400, maintenant); osc.frequency.exponentialRampToValueAtTime(800, maintenant + 0.05); gain.gain.setValueAtTime(0.05, maintenant); gain.gain.linearRampToValueAtTime(0, maintenant + 0.05); osc.start(maintenant); osc.stop(maintenant + 0.05); } 
             else if (type === "hit") { osc.type = "sine"; osc.frequency.setValueAtTime(600, maintenant); osc.frequency.exponentialRampToValueAtTime(150, maintenant + 0.08); gain.gain.setValueAtTime(0.1, maintenant); gain.gain.linearRampToValueAtTime(0, maintenant + 0.1); osc.start(maintenant); osc.stop(maintenant + 0.15); }
             else if (type === "morsure") { osc.type = "triangle"; osc.frequency.setValueAtTime(150, maintenant); osc.frequency.linearRampToValueAtTime(40, maintenant + 0.08); gain.gain.setValueAtTime(0.15, maintenant); gain.gain.linearRampToValueAtTime(0, maintenant + 0.08); osc.start(maintenant); osc.stop(maintenant + 0.08); }
@@ -182,6 +181,7 @@
 
         function dessiner() {
             ctx.fillStyle = "#2d4a2d"; ctx.fillRect(0, 0, canvas.width, canvas.height); // Fond Vert
+            dessinerChemin();
             dessinerDecors(); 
             let centre_x = canvas.width / 2, centre_y = canvas.height / 2, bas_y = canvas.height;
             if (etat_jeu === "MENU_PRINCIPAL") {
