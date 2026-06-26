@@ -64,14 +64,17 @@
         let decor = [];
         function rafraichirDecor() {
             decor = [];
-            let lChemin = Math.min(canvas.width, canvas.height) * 0.18 / 2;
+            let lChemin = Math.min(canvas.width, canvas.height) * 0.18;
             for(let i=0; i<150; i++){
                 let x = Math.random() * canvas.width;
                 let y = Math.random() * canvas.height;
-                if(Math.hypot(x - canvas.width/2, y - canvas.height/2) < taille_coffre * 0.8) continue;
-                let d1 = Math.abs(x - y) / Math.sqrt(2);
-                let d2 = Math.abs(x + y - canvas.height) / Math.sqrt(2);
-                if(d1 < lChemin || d2 < lChemin) continue;
+                // Ne pas mettre de décor sur le centre (coffre)
+                if(Math.hypot(x - canvas.width/2, y - canvas.height/2) < taille_coffre) continue;
+                
+                // Ne pas mettre de décor sur les chemins diagonaux (simplifiés)
+                let cx = canvas.width/2; let cy = canvas.height/2;
+                if (Math.abs((x - cx) - (y - cy)) < lChemin/2 || Math.abs((x - cx) + (y - cy)) < lChemin/2) continue;
+                
                 decor.push({x, y, s: 1 + Math.random() * 4, c: "rgba(20, 60, 20, 0.4)"});
             }
         }
@@ -79,14 +82,41 @@
         function dessinerChemin() {
             let lChemin = Math.min(canvas.width, canvas.height) * 0.18;
             ctx.fillStyle = "#5c4033"; // Couleur terre battue
-            // Croix diagonale
-            ctx.save();
-            ctx.translate(canvas.width/2, canvas.height/2);
-            ctx.rotate(Math.PI/4);
-            ctx.fillRect(-lChemin/2, -canvas.width, lChemin, canvas.width * 2);
-            ctx.rotate(Math.PI/2);
-            ctx.fillRect(-lChemin/2, -canvas.width, lChemin, canvas.width * 2);
-            ctx.restore();
+            let cx = canvas.width / 2;
+            let cy = canvas.height / 2;
+
+            // 4 bandes partant du centre vers les coins
+            // Chemin 1: Haut-Gauche
+            ctx.beginPath();
+            ctx.moveTo(cx - lChemin/2, cy - lChemin/2);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(0, 0 + lChemin * 0.7); // Ajustement largeur
+            ctx.lineTo(cx - lChemin/2 + lChemin, cy - lChemin/2 + lChemin);
+            ctx.fill();
+
+            // Chemin 2: Haut-Droite
+            ctx.beginPath();
+            ctx.moveTo(cx + lChemin/2, cy - lChemin/2);
+            ctx.lineTo(canvas.width, 0);
+            ctx.lineTo(canvas.width, lChemin * 0.7);
+            ctx.lineTo(cx + lChemin/2 - lChemin, cy - lChemin/2 + lChemin);
+            ctx.fill();
+
+            // Chemin 3: Bas-Gauche
+            ctx.beginPath();
+            ctx.moveTo(cx - lChemin/2, cy + lChemin/2);
+            ctx.lineTo(0, canvas.height);
+            ctx.lineTo(lChemin * 0.7, canvas.height);
+            ctx.lineTo(cx - lChemin/2 + lChemin, cy + lChemin/2 - lChemin);
+            ctx.fill();
+
+            // Chemin 4: Bas-Droite
+            ctx.beginPath();
+            ctx.moveTo(cx + lChemin/2, cy + lChemin/2);
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(canvas.width - lChemin * 0.7, canvas.height);
+            ctx.lineTo(cx + lChemin/2 - lChemin, cy + lChemin/2 - lChemin);
+            ctx.fill();
         }
 
         function dessinerDecors() {
@@ -158,7 +188,15 @@
         window.addEventListener('resize', redimensionner);
 
         function demarrerLaVraiePartie() { PokiSDK.commercialBreak().then(() => { PokiSDK.gameplayStart(); hp_coffre = 10000; score = 0; or_gagne = 0; vague = 1; temps_vague_timer = 0; joueur_niveau = 1; joueur_xp = 0; xp_necessaire = 100; intervalle_spawn = 1200; liste_ennemis = []; popups_degats = []; dernier_spawn = Date.now(); mode_tactile = false; etat_jeu = "JEU"; redimensionner(); }); }
-        function faireSpawnEnnemis() { let coins = [{x: 0, y: 0}, {x: canvas.width, y: 0}, {x: 0, y: canvas.height}, {x: canvas.width, y: canvas.height}]; let tEnnemi = Math.min(canvas.width, canvas.height) * 0.082; coins.forEach((coin) => { let estKamikaze = vague >= 2 && Math.random() < 0.35; if (estKamikaze) { liste_ennemis.push({ type: "kamikaze", x: coin.x - (tEnnemi*0.75/2), y: coin.y - (tEnnemi*0.75/2), largeur: tEnnemi * 0.75, hauteur: tEnnemi * 0.75, vitesse: (4 + (vague - 1) * 0.4) * 1.5, hp: (1000 + (vague - 1) * 350) * 0.4, max_hp: (1000 + (vague - 1) * 350) * 0.4, degats: (100 + (vague - 1) * 20) * 1.5, couleur: "#ff9900", invulnerable_timer: 0 }); } else { liste_ennemis.push({ type: "normal", x: coin.x - (tEnnemi/2), y: coin.y - (tEnnemi/2), largeur: tEnnemi, hauteur: tEnnemi, vitesse: Math.min(7.5, 4 + (vague - 1) * 0.4), hp: 1000 + (vague - 1) * 350, max_hp: 1000 + (vague - 1) * 350, degats: 100 + (vague - 1) * 20, couleur: "#ff4d4d", invulnerable_timer: 0 }); } }); }
+        function faireSpawnEnnemis() { 
+            // Spawn aux coins pour s'aligner sur les bandes diagonales
+            let coins = [{x: 0, y: 0}, {x: canvas.width, y: 0}, {x: 0, y: canvas.height}, {x: canvas.width, y: canvas.height}]; 
+            let tEnnemi = Math.min(canvas.width, canvas.height) * 0.082; 
+            coins.forEach((coin) => { 
+                let estKamikaze = vague >= 2 && Math.random() < 0.35; 
+                if (estKamikaze) { liste_ennemis.push({ type: "kamikaze", x: coin.x - (tEnnemi*0.75/2), y: coin.y - (tEnnemi*0.75/2), largeur: tEnnemi * 0.75, hauteur: tEnnemi * 0.75, vitesse: (4 + (vague - 1) * 0.4) * 1.5, hp: (1000 + (vague - 1) * 350) * 0.4, max_hp: (1000 + (vague - 1) * 350) * 0.4, degats: (100 + (vague - 1) * 20) * 1.5, couleur: "#ff9900", invulnerable_timer: 0 }); } else { liste_ennemis.push({ type: "normal", x: coin.x - (tEnnemi/2), y: coin.y - (tEnnemi/2), largeur: tEnnemi, hauteur: tEnnemi, vitesse: Math.min(7.5, 4 + (vague - 1) * 0.4), hp: 1000 + (vague - 1) * 350, max_hp: 1000 + (vague - 1) * 350, degats: 100 + (vague - 1) * 20, couleur: "#ff4d4d", invulnerable_timer: 0 }); } 
+            }); 
+        }
         function collision(r1, r2) { return r1.x < r2.x + r2.largeur && r1.x + r1.largeur > r2.x && r1.y < r2.y + r2.hauteur && r1.y + r1.hauteur > r2.y; }
         function ajouterXP(montant) { joueur_xp += montant; if (joueur_xp >= xp_necessaire) { joueur_xp -= xp_necessaire; joueur_niveau++; xp_necessaire = Math.floor(xp_necessaire * 1.4); jouerSon("levelup"); if (Math.random() < 0.5) { hp_coffre = Math.min(max_hp_coffre, hp_coffre + 1500); message_level_up = "COFFRE SOIGNÉ ! (+1500 HP)"; } else { score += 150; message_level_up = "BONUS SCORE ! (+150 PTS)"; } level_up_timer = 90; } }
         
