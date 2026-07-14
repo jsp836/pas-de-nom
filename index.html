@@ -1,105 +1,302 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Défends le Coffre ! v7.9</title>
-    <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
-    <style>
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0f1a0f; touch-action: none; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; user-select: none; }
-        canvas { display: block; background-color: #2d4a2d; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-    </style>
-</head>
-<body>
-    <canvas id="jeuCanvas"></canvas>
-    <script>
-        const canvas = document.getElementById("jeuCanvas");
-        const ctx = canvas.getContext("2d");
+import pygame
+import sys
+import os
 
-        PokiSDK.init().then(() => {}).catch(() => {});
+pygame.init()
+pygame.font.init()
 
-        let taille_coffre = 100;
-        let liste_ennemis = [];
-        let score = 0;
-        let etat_jeu = "MENU_PRINCIPAL";
-        let or_total = 0;
-        let perso_choisi = "chevalier";
-        let joueur_x = 0;
-        let joueur_y = 0;
-        let joueur_largeur = 50;
+ecran = pygame.display.set_mode((1920, 600))
+horloge = pygame.time.Clock()
+police = pygame.font.SysFont("Arial", 50)
+police_petite = pygame.font.SysFont("Arial", 30)
 
-        const types_personnages = {
-            chevalier: { nom: "CHEVALIER", couleur: "#a6a6a6", prix: 0, debloque: true, vit_base: 8, deg_base: 500, niv_degats: 1, niv_vitesse: 1 },
-            ninja: { nom: "NINJA", couleur: "#2e2e2e", prix: 100, debloque: false, vit_base: 12, deg_base: 300, niv_degats: 1, niv_vitesse: 1 },
-            tank: { nom: "TANK", couleur: "#5e2585", prix: 200, debloque: false, vit_base: 3, deg_base: 1000, niv_degats: 1, niv_vitesse: 1 }
-        };
+joueur = pygame.Rect(50, 450, 30, 40)
+vitesse_y = 0
+niveau_actuel = 1
+compteur_morts = 0
+jeu_fini = False
+temps_total_debut = pygame.time.get_ticks()
 
-        function dessinerCheminDiagonale() {
-            let l = Math.min(canvas.width, canvas.height) * 0.16;
-            let offset = -canvas.height * 0.05; // Décalage vers le haut de 5% de la hauteur
-            ctx.fillStyle = "#5c4033";
-            ctx.save();
-            // Diagonale 1 (montée)
-            ctx.beginPath();
-            ctx.moveTo(0, offset); ctx.lineTo(canvas.width, canvas.height + offset);
-            ctx.lineTo(canvas.width - (l * canvas.width / canvas.height), canvas.height + offset); ctx.lineTo(0, l + offset);
-            ctx.fill();
-            // Diagonale 2 (montée)
-            ctx.beginPath();
-            ctx.moveTo(canvas.width, offset); ctx.lineTo(0, canvas.height + offset);
-            ctx.lineTo(l * canvas.width / canvas.height, canvas.height + offset); ctx.lineTo(canvas.width, l + offset);
-            ctx.fill();
-            ctx.restore();
-        }
+# --- SYSTEME DE SAUVEGARDE ---
+FICHIER_SAUVEGARDE = "sauvegarde.txt"
 
-        function redimensionner() { 
-            canvas.width = window.innerWidth; 
-            canvas.height = window.innerHeight; 
-            taille_coffre = Math.min(canvas.width, canvas.height) * 0.2;
-            joueur_x = canvas.width / 2; joueur_y = canvas.height / 2;
-        }
+def charger_progression():
+    if os.path.exists(FICHIER_SAUVEGARDE):
+        try:
+            with open(FICHIER_SAUVEGARDE, "r") as f:
+                return int(f.read().strip())
+        except:
+            return 1
+    return 1
 
-        function dessinerMenu() {
-            ctx.fillStyle = "rgba(0,0,0,0.7)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 30px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText("DÉFENDS LE COFFRE", canvas.width/2, canvas.height/2 - 50);
-            ctx.font = "20px Arial";
-            ctx.fillText("Appuie pour commencer", canvas.width/2, canvas.height/2 + 50);
-        }
+def sauvegarder_progression(niveau):
+    try:
+        with open(FICHIER_SAUVEGARDE, "w") as f:
+            f.write(str(niveau))
+    except:
+        pass
 
-        function dessiner() {
-            ctx.fillStyle = "#2d4a2d"; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+# Chargement de la progression
+niveau_max_debloque = charger_progression()
+mode_jeu = "MENU"        # "MENU", "SOLO", "SPEEDRUN"
+niveau_selectionne = 1
+
+# Boutons du menu principal
+btn_solo = pygame.Rect(400, 250, 500, 80)
+btn_speedrun = pygame.Rect(1020, 250, 500, 80)
+
+# Boutons de l'écran de fin
+bouton_rect = pygame.Rect(650, 450, 300, 60)      # Recommencer
+bouton_menu_rect = pygame.Rect(980, 450, 300, 60) # Retour Menu
+
+# Bouton "Retour Menu" en cours de partie (accessible tout le temps)
+btn_retour_partie = pygame.Rect(20, 15, 180, 45)
+
+# Bouton "Abandonner" en cours de speedrun
+btn_quitter_run = pygame.Rect(1750, 15, 150, 45)
+
+# Positions des boutons de niveaux (1 à 7) dans le menu
+boutons_niveaux = []
+for i in range(7):
+    boutons_niveaux.append(pygame.Rect(260 + i * 200, 420, 140, 70))
+
+def charger_niveau(n):
+    joueur.x, joueur.y = 50, 450
+    piques_data = [] 
+    piques_decouverts = []
+    
+    if n == 1:
+        liste_sol = [{"rect": pygame.Rect(0, 490, 1920, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}]
+    elif n == 2:
+        liste_sol = [{"rect": pygame.Rect(0, 490, 800, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}, {"rect": pygame.Rect(950, 490, 970, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}]
+    elif n == 3:
+        liste_sol = [{"rect": pygame.Rect(0, 490, 1000, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}, {"rect": pygame.Rect(1120, 490, 500, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}, {"rect": pygame.Rect(1620, 490, 100, 110), "tombe": True, "vitesse": 0, "vitesse_x": 0}, {"rect": pygame.Rect(1720, 490, 200, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}]
+    elif n == 4:
+        liste_sol = [{"rect": pygame.Rect(0, 490, 500, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}, {"rect": pygame.Rect(620, 490, 470, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}, {"rect": pygame.Rect(1140, 490, 70, 110), "tombe": True, "vitesse": 0, "vitesse_x": 0}, {"rect": pygame.Rect(1210, 490, 480, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}, {"rect": pygame.Rect(1690, 490, 120, 110), "tombe": True, "vitesse": 0, "vitesse_x": 0}, {"rect": pygame.Rect(1810, 490, 110, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}]
+        piques_decouverts = [pygame.Rect(1839, 430, 1, 60)]
+    elif n == 5:
+        liste_sol = [{"rect": pygame.Rect(0, 490, 1920, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}]
+        piques_decouverts = [pygame.Rect(1839, 430, 1, 60)]
+    elif n == 6:
+        liste_sol = [{"rect": pygame.Rect(0, 490, 1920, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}]
+        piques_decouverts = [
+            pygame.Rect(1839, 430, 1, 60), 
+            pygame.Rect(0, 0, 50, 491), 
+            pygame.Rect(0, 0, 1000, 60),
+            pygame.Rect(0, 491, 1000, 60),
+            pygame.Rect(950, 0, 50, 230),
+            pygame.Rect(950, 350, 50, 141)
+        ]
+    elif n == 7:
+        liste_sol = [{"rect": pygame.Rect(0, 490, 1920, 110), "tombe": False, "vitesse": 0, "vitesse_x": 0}]
+        piques_decouverts = [
+            pygame.Rect(1839, 430, 1, 60), 
+            pygame.Rect(0, 0, 50, 491), 
+            pygame.Rect(0, 0, 1000, 60),
+            pygame.Rect(0, 491, 1000, 60),
+            pygame.Rect(950, 0, 50, 230),
+            pygame.Rect(950, 350, 50, 141)] 
+        
+    porte = pygame.Rect(1840, 430, 40, 60)
+    return liste_sol, piques_data, piques_decouverts, porte
+
+sol_liste, piques_data, piques_decouverts, porte = charger_niveau(niveau_actuel)
+
+continuer = True
+while continuer:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT: 
+            continuer = False
+        
+        # --- GESTION DES CLICS SOURIS ---
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if mode_jeu == "MENU":
+                # Lancement Speedrun
+                if btn_speedrun.collidepoint(event.pos):
+                    mode_jeu = "SPEEDRUN"
+                    niveau_actuel = 1
+                    compteur_morts = 0
+                    jeu_fini = False
+                    temps_total_debut = pygame.time.get_ticks()
+                    sol_liste, piques_data, piques_decouverts, porte = charger_niveau(niveau_actuel)
+                    vitesse_y = 0
+                
+                # Sélection Niveau Unique
+                for i, rect in enumerate(boutons_niveaux):
+                    n_lvl = i + 1
+                    if rect.collidepoint(event.pos) and n_lvl <= niveau_max_debloque:
+                        mode_jeu = "SOLO"
+                        niveau_actuel = n_lvl
+                        compteur_morts = 0
+                        jeu_fini = False
+                        temps_total_debut = pygame.time.get_ticks()
+                        sol_liste, piques_data, piques_decouverts, porte = charger_niveau(niveau_actuel)
+                        vitesse_y = 0
+
+            elif jeu_fini:
+                # Recommencer
+                if bouton_rect.collidepoint(event.pos):
+                    if mode_jeu == "SPEEDRUN":
+                        niveau_actuel = 1
+                    compteur_morts = 0
+                    jeu_fini = False
+                    temps_total_debut = pygame.time.get_ticks()
+                    sol_liste, piques_data, piques_decouverts, porte = charger_niveau(niveau_actuel)
+                    vitesse_y = 0
+                
+                # Retour Menu (Écran de fin)
+                elif bouton_menu_rect.collidepoint(event.pos):
+                    mode_jeu = "MENU"
             
-            dessinerCheminDiagonale();
+            # Clics en pleine partie (Pendant qu'on joue)
+            elif mode_jeu != "MENU" and not jeu_fini:
+                # Nouveau : Bouton Retour Menu cliqué n'importe quand
+                if btn_retour_partie.collidepoint(event.pos):
+                    mode_jeu = "MENU"
+                
+                # Abandon Speedrun (bouton à droite)
+                elif mode_jeu == "SPEEDRUN" and btn_quitter_run.collidepoint(event.pos):
+                    jeu_fini = True
+
+    # --- LOGIQUE DU JEU EN PARTIE ---
+    if mode_jeu != "MENU" and not jeu_fini:
+        if niveau_actuel == 6: vitesse_joueur = 50
+        elif niveau_actuel == 5: vitesse_joueur = 20
+        elif niveau_actuel == 7: vitesse_joueur = 50
+        else: vitesse_joueur = 5
             
-            ctx.fillStyle = "#FFD700";
-            ctx.fillRect(canvas.width/2 - 30, canvas.height/2 - 30, 60, 60);
+        if niveau_actuel == 5: force_saut = -25
+        elif niveau_actuel == 6: force_saut = -25
+        elif niveau_actuel == 7: force_saut = -25
+        else: force_saut = -15
+        
+        touches = pygame.key.get_pressed()
+        if touches[pygame.K_LEFT] and joueur.x > 0: joueur.x -= vitesse_joueur
+        if touches[pygame.K_RIGHT] and joueur.x < 1890: joueur.x += vitesse_joueur
+        
+        vitesse_y += 1
+        joueur.y += vitesse_y
+        
+        for p in piques_data:
+            if abs(joueur.x - p.x) < 300 and p not in piques_decouverts:
+                piques_decouverts.append(p)
+        
+        for p in piques_decouverts:
+            if joueur.colliderect(p):
+                compteur_morts += 1
+                sol_liste, piques_data, piques_decouverts, porte = charger_niveau(niveau_actuel)
+                vitesse_y = 0
+        
+        if joueur.y > 1200:
+            compteur_morts += 1
+            sol_liste, piques_data, piques_decouverts, porte = charger_niveau(niveau_actuel)
+            vitesse_y = 0
+            
+        for sol in sol_liste:
+            if niveau_actuel < 5 and sol["tombe"] and abs(joueur.x - sol["rect"].x) < 100: 
+                sol["vitesse"] += 0.5
+            sol["rect"].y += int(sol["vitesse"])
+            
+            if joueur.colliderect(sol["rect"]):
+                if joueur.bottom < sol["rect"].top + 20:
+                    joueur.bottom = sol["rect"].top
+                    vitesse_y = 0
+                    if touches[pygame.K_UP]: vitesse_y = force_saut
+                    
+        if porte and joueur.colliderect(porte):
+            if mode_jeu == "SPEEDRUN":
+                if niveau_actuel < 7:
+                    niveau_actuel += 1
+                    sol_liste, piques_data, piques_decouverts, porte = charger_niveau(niveau_actuel)
+                else:
+                    jeu_fini = True
+            elif mode_jeu == "SOLO":
+                if niveau_actuel == niveau_max_debloque and niveau_max_debloque < 7:
+                    niveau_max_debloque += 1
+                    sauvegarder_progression(niveau_max_debloque)
+                jeu_fini = True
 
-            if (etat_jeu === "MENU_PRINCIPAL") {
-                dessinerMenu();
-            } else {
-                ctx.fillStyle = "#aaa";
-                ctx.fillRect(joueur_x - joueur_largeur/2, joueur_y - joueur_largeur/2, joueur_largeur, joueur_largeur);
-                liste_ennemis.forEach(m => {
-                    ctx.fillStyle = "#FF4444";
-                    ctx.fillRect(m.x, m.y, 30, 30);
-                });
-            }
-            requestAnimationFrame(dessiner);
-        }
+    # --- RENDU VISUEL ---
+    ecran.fill((0, 0, 0))
+    
+    if mode_jeu == "MENU":
+        ecran.blit(police.render("MENU PRINCIPAL", True, (255, 255, 255)), (800, 50))
+        
+        pygame.draw.rect(ecran, (30, 30, 30), btn_solo)
+        ecran.blit(police.render("SELECTION DE NIVEAU", True, (0, 255, 100)), (420, 260))
+        
+        pygame.draw.rect(ecran, (50, 100, 200), btn_speedrun)
+        ecran.blit(police.render("MODE SPEEDRUN (1-7)", True, (255, 255, 255)), (1050, 260))
+        
+        ecran.blit(police_petite.render("Choisissez votre niveau d'entraînement (débloquez-les en gagnant) :", True, (200, 200, 200)), (260, 370))
+        for i, rect in enumerate(boutons_niveaux):
+            n_lvl = i + 1
+            if n_lvl <= niveau_max_debloque:
+                pygame.draw.rect(ecran, (40, 150, 80), rect)
+                texte_couleur = (255, 255, 255)
+            else:
+                pygame.draw.rect(ecran, (60, 60, 60), rect)
+                texte_couleur = (120, 120, 120)
+                
+            ecran.blit(police.render(f"Lvl {n_lvl}", True, texte_couleur), (rect.x + 20, rect.y + 10))
 
-        window.addEventListener('mousedown', () => { if(etat_jeu === "MENU_PRINCIPAL") etat_jeu = "COMBAT"; });
-        window.addEventListener('resize', redimensionner);
-        redimensionner();
+    elif not jeu_fini:
+        for sol in sol_liste:
+            pygame.draw.rect(ecran, (120, 120, 120), sol["rect"])
+        for p in piques_decouverts:
+            pygame.draw.rect(ecran, (255, 0, 0), p)
+        if porte: pygame.draw.rect(ecran, (50, 200, 50), porte)
+        
+        # Dessin du joueur
+        pygame.draw.rect(ecran, (50, 150, 255), joueur)
+        pygame.draw.rect(ecran, (50, 150, 255), (joueur.x - 8, joueur.y + 5, 5, 5))
+        pygame.draw.rect(ecran, (255, 255, 255), (joueur.x + 8, joueur.y - 15, 15, 15))
+        pygame.draw.rect(ecran, (0, 0, 0), (joueur.x + 10, joueur.y - 10, 3, 3))
+        pygame.draw.rect(ecran, (0, 0, 0), (joueur.x + 18, joueur.y - 10, 3, 3))
+        pygame.draw.rect(ecran, (0, 0, 0), (joueur.x + 11, joueur.y - 5, 10, 3))
+        pygame.draw.rect(ecran, (255, 255, 255), (joueur.x - 8, joueur.y + 2, 8, 5))
+        pygame.draw.rect(ecran, (255, 255, 255), (joueur.x + 30, joueur.y + 5, 8, 5))
+        pygame.draw.rect(ecran, (255, 255, 255), (joueur.x + 2, joueur.y + 40, 10, 15))
+        pygame.draw.rect(ecran, (255, 255, 255), (joueur.x + 18, joueur.y + 40, 10, 15))
+        
+        # --- BOUTONS EN JEU ---
+        # Dessin du bouton permanent "Retour Menu"
+        pygame.draw.rect(ecran, (100, 100, 100), btn_retour_partie)
+        ecran.blit(police_petite.render("< Menu", True, (255, 255, 255)), (btn_retour_partie.x + 40, btn_retour_partie.y + 5))
+        
+        # Affichage du niveau (décalé à côté du bouton pour éviter la superposition)
+        ecran.blit(police.render(f"Level {niveau_actuel}", True, (255, 255, 255)), (230, 12))
+        
+        if mode_jeu == "SPEEDRUN":
+            temps_courant = (pygame.time.get_ticks() - temps_total_debut) // 1000
+            ecran.blit(police_petite.render(f"Temps : {temps_courant}s", True, (255, 255, 255)), (450, 25))
+            ecran.blit(police_petite.render(f"Morts : {compteur_morts}", True, (255, 100, 100)), (650, 25))
+            
+            # Bouton pour abandonner la run
+            pygame.draw.rect(ecran, (180, 50, 50), btn_quitter_run)
+            ecran.blit(police_petite.render("quiter", True, (255, 255, 255)), (btn_quitter_run.x + 20, btn_quitter_run.y + 5))
+            
+    else:
+        temps_final = (pygame.time.get_ticks() - temps_total_debut) // 1000
+        
+        if mode_jeu == "SPEEDRUN":
+            ecran.blit(police.render("SPEEDRUN TERMINE !", True, (255, 215, 0)), (750, 150))
+            ecran.blit(police.render(f"Temps total : {temps_final}s", True, (255, 255, 255)), (700, 260))
+            ecran.blit(police.render(f"Nombre de morts : {compteur_morts}", True, (255, 255, 255)), (700, 330))
+        else:
+            ecran.blit(police.render(f"NIVEAU {niveau_actuel} REUSSI !", True, (100, 255, 100)), (750, 180))
+            if niveau_actuel < 7:
+                ecran.blit(police_petite.render("Niveau suivant débloqué dans le menu !", True, (200, 200, 200)), (740, 280))
+            else:
+                ecran.blit(police_petite.render("Vous avez vaincu le dernier niveau !", True, (255, 215, 0)), (760, 280))
 
-        window.onload = () => {
-            PokiSDK.gameLoadingFinished();
-            dessiner();
-        };
-    </script>
-</body>
-</html>
+        pygame.draw.rect(ecran, (50, 150, 255), bouton_rect)
+        ecran.blit(police_petite.render("Recommencer", True, (255, 255, 255)), (bouton_rect.x + 60, bouton_rect.y + 12))
+        
+        pygame.draw.rect(ecran, (100, 100, 100), bouton_menu_rect)
+        ecran.blit(police_petite.render("Retour Menu", True, (255, 255, 255)), (bouton_menu_rect.x + 70, bouton_menu_rect.y + 12))
+    
+    pygame.display.flip()
+    horloge.tick(60)
+
+pygame.quit()
